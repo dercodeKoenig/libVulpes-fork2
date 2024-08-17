@@ -1,104 +1,72 @@
 package zmaster587.libVulpes.block;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
-import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.block.properties.PropertyBool;
+import net.minecraft.block.state.BlockStateContainer;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.IIcon;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
-import net.minecraftforge.common.util.ForgeDirection;
 import zmaster587.libVulpes.LibVulpes;
 import zmaster587.libVulpes.util.IAdjBlockUpdate;
 
 public class BlockTile extends RotatableBlock {
 
-	protected IIcon sides_active, front_active, rear_active, bottom_active,top_active;
 	protected Class<? extends TileEntity> tileClass;
-	protected String textureSideName, textureFrontName, textureTopName, textureBottomName, textureRearName;
-	protected String textureSideName_active, textureFrontName_active, textureTopName_active, textureBottomName_active, textureRearName_active;
-
 	protected int guiId;
+	public static final PropertyBool STATE = PropertyBool.create("state");
 
 	public BlockTile(Class<? extends TileEntity> tileClass, int guiId) {
-		super(Material.rock);
+		super(Material.IRON);
 		this.tileClass = tileClass;
 		this.guiId = guiId;
-		this.setBlockTextureName("libvulpes:machineGeneric");
+		this.setDefaultState(this.blockState.getBaseState().withProperty(STATE, false));
 	}
+
+	public BlockTile(Class<? extends TileEntity> tileClass, int guiId, Material material) {
+		super(material);
+		this.tileClass = tileClass;
+		this.guiId = guiId;
+		this.setDefaultState(this.blockState.getBaseState().withProperty(STATE, false));
+	}
+
+    protected BlockStateContainer createBlockState()
+    {
+        return new BlockStateContainer(this, FACING, STATE);
+    }
 	
-	public Block setBlockTextureName(String texture1, String textureActive) {
-		setBlockTextureName(texture1);
-		textureSideName_active = textureFrontName_active = textureTopName_active = textureBottomName_active = textureRearName_active = textureActive;
-		return this;
+    @Override
+    public IBlockState getActualState(IBlockState state, IBlockAccess worldIn,
+    		BlockPos pos) {
+    	return super.getActualState(state, worldIn, pos);
+    }
+    
+    /**
+     * Convert the BlockState into the correct metadata value
+     */
+    public int getMetaFromState(IBlockState state) {
+    	return state.getValue(FACING).getIndex() | (state.getValue(STATE) ? 8 : 0);
+    }
+    
+	public void setBlockState(World world, IBlockState state, BlockPos pos, boolean newState) {
+		world.setBlockState(pos, state.withProperty(STATE, newState), 2);
+		world.markBlockRangeForRenderUpdate(pos, pos);
 	}
-
-	public Block setSideTexture(String textureName) {
-		textureSideName = textureName;
-		return this;
-	}
-
-	public Block setSideTexture(String textureName, String textureNameActive) {
-		textureSideName = textureName;
-		textureSideName_active = textureNameActive;
-		return this;
-	}
-
-	public Block setFrontTexture(String textureName) {
-		textureFrontName = textureName;
-		return this;
-	}
-
-	public Block setFrontTexture(String textureName, String textureNameActive) {
-		textureFrontName = textureName;
-		textureFrontName_active = textureNameActive;
-		return this;
-	}
-
-	public Block setTopTexture(String textureName) {
-		textureTopName = textureName;
-		return this;
-	}
-
-	public Block setTopTexture(String textureName, String textureNameActive) {
-		textureTopName = textureName;
-		textureTopName_active = textureNameActive;
-		return this;
-	}
-
-	public Block setBottomTexture(String textureName) {
-		textureBottomName = textureName;
-		return this;
-	}
-
-	public Block setBottomTexture(String textureName, String textureNameActive) {
-		textureBottomName = textureName;
-		textureBottomName_active = textureNameActive;
-		return this;
-	}
-
-	public Block setRearTexture(String textureName) {
-		textureRearName = textureName;
-		return this;
-	}
-
-	public Block setRearTexture(String textureName, String textureNameActive) {
-		textureRearName = textureName;
-		textureRearName_active = textureNameActive;
-		return this;
-	}
+    
+	@Override
+	public boolean hasTileEntity(IBlockState state) { return true; }
 
 	@Override
-	public boolean hasTileEntity(int meta) { return true; }
-
-	@Override
-	public TileEntity createTileEntity(World world, int meta) {
+	public TileEntity createTileEntity(World world, IBlockState state) {
 		try {
 			return tileClass.newInstance();
 		} catch (Exception e) {
@@ -106,182 +74,84 @@ public class BlockTile extends RotatableBlock {
 		}
 		return null;
 	}
-
+	
 	@Override
-	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int par6, float par7, float par8, float par9)
-	{
+	public boolean onBlockActivated(World world, BlockPos pos,
+			IBlockState state, EntityPlayer player, EnumHand hand,
+			EnumFacing facing, float hitX, float hitY, float hitZ) {
 		if(!world.isRemote)
-			player.openGui(LibVulpes.instance, guiId, world, x, y, z);
+			player.openGui(LibVulpes.instance, guiId, world, pos.getX(), pos.getY(), pos.getZ());
 		return true;
 	}
 
 	@Override
-	public void onNeighborBlockChange(World world, int x,
-			int y, int z, Block block) {
-		super.onNeighborBlockChange(world, x, y, z,
-				block);
-		TileEntity tile = world.getTileEntity(x, y, z);
+	public void onNeighborChange(IBlockAccess world, BlockPos pos, BlockPos neighbor) {
+		super.onNeighborChange(world, pos,
+				neighbor);
+		TileEntity tile = world.getTileEntity(pos);
 		if(tile instanceof IAdjBlockUpdate)
 			((IAdjBlockUpdate)tile).onAdjacentBlockUpdated();
 
 	}
 
 	@Override
-	public boolean isBlockNormalCube() {
+	public boolean isBlockNormalCube(IBlockState state) {
 		return false;
 	}
 	
 	@Override
-	public boolean isOpaqueCube() {
+	public boolean isOpaqueCube(IBlockState state) {
 		return false;
 	}
 	
-	@SideOnly(Side.CLIENT)
 	@Override
-	public void registerBlockIcons(IIconRegister icons)
+	public void breakBlock(World world, BlockPos pos, IBlockState state)
 	{
-		this.blockIcon = icons.registerIcon(this.getTextureName());
-		if(this.textureSideName == null)
-			this.sides = this.blockIcon;
-		else
-			this.sides = icons.registerIcon(this.textureSideName);
-
-		if(this.textureSideName_active != null)
-			this.sides_active = icons.registerIcon(this.textureSideName_active);
-		else
-			this.sides_active = this.sides;
-
-
-		if(this.textureTopName != null)
-			this.top = icons.registerIcon(this.textureTopName);
-		else
-			this.top = sides;
-
-
-		if(textureTopName_active != null)
-			this.top_active = icons.registerIcon(this.textureTopName_active);
-		else
-			this.top_active = top;
-
-
-		if(this.textureFrontName == null)
-			this.front = this.sides;
-		else
-			this.front = icons.registerIcon(this.textureFrontName);
-
-
-		if(this.textureFrontName_active == null) {
-			if(this.front != this.sides)
-				this.front_active = this.front;
-			else
-				this.front_active = this.sides_active;
-		}
-		else
-			this.front_active = icons.registerIcon(this.textureFrontName_active);
-
-
-		if(this.textureRearName == null)
-			this.rear = this.sides;
-		else
-			this.rear = icons.registerIcon(this.textureRearName);
-
-		if(this.textureRearName_active == null)
-			this.rear_active = this.sides_active;
-		else
-			this.rear_active = icons.registerIcon(this.textureRearName_active);
-
-
-		if(this.textureBottomName == null)
-			this.bottom = this.top;
-		else
-			this.bottom = icons.registerIcon(this.textureBottomName);
-
-		if(this.textureBottomName_active == null)
-			this.bottom_active = this.sides_active;
-		else
-			this.bottom_active = icons.registerIcon(this.textureBottomName_active);
-	}
-
-	@Override
-	@SideOnly(Side.CLIENT)
-
-	/**
-	 * From the specified side and block metadata retrieves the blocks texture. Args: side, metadata
-	 */
-	public IIcon getIcon(int side, int meta)
-	{
-		ForgeDirection dir = getRelativeSide(side,meta);
-
-
-		if((meta & 8) == 8) {
-			if(dir == ForgeDirection.UP)
-				return this.top_active;
-			else if(dir == ForgeDirection.DOWN)
-				return this.bottom_active;
-			else if(dir == ForgeDirection.NORTH)
-				return this.front_active;
-			else if(dir == ForgeDirection.EAST)
-				return this.sides_active;
-			else if(dir == ForgeDirection.SOUTH)
-				return this.rear_active;
-			else if(dir == ForgeDirection.WEST)
-				return this.sides_active;
-		}
-		else {
-			return super.getIcon(side, meta);
-		}
-
-		return this.blockIcon;
-	}
-
-	@Override
-	public void breakBlock(World world, int x, int y, int z, Block block, int meta)
-	{
-		TileEntity tile = world.getTileEntity(x, y, z);
+		TileEntity tile = world.getTileEntity(pos);
 
 		//This code could use some optimization -Dark
-		if (tile instanceof IInventory)
+		if (!world.isRemote && tile instanceof IInventory)
 		{
 			IInventory inventory = (IInventory)tile;
 			for (int i1 = 0; i1 < inventory.getSizeInventory(); ++i1)
 			{
 				ItemStack itemstack = inventory.getStackInSlot(i1);
 
-				if (itemstack != null)
+				if (!itemstack.isEmpty())
 				{
 					float f = world.rand.nextFloat() * 0.8F + 0.1F;
 					float f1 = world.rand.nextFloat() * 0.8F + 0.1F;
 					EntityItem entityitem;
 
-					for (float f2 = world.rand.nextFloat() * 0.8F + 0.1F; itemstack.stackSize > 0; world.spawnEntityInWorld(entityitem))
+					for (float f2 = world.rand.nextFloat() * 0.8F + 0.1F; itemstack.getCount() > 0; world.spawnEntity(entityitem))
 					{
 						int j1 = world.rand.nextInt(21) + 10;
 
-						if (j1 > itemstack.stackSize)
+						if (j1 > itemstack.getCount())
 						{
-							j1 = itemstack.stackSize;
+							j1 = itemstack.getCount();
 						}
-
-						itemstack.stackSize -= j1;
-						entityitem = new EntityItem(world, (double)((float)x + f), (double)((float)y + f1), (double)((float)z + f2), new ItemStack(itemstack.getItem(), j1, itemstack.getItemDamage()));
+						Item oldItem = itemstack.getItem();
+						ItemStack oldStack = itemstack.copy();
+						itemstack.setCount(itemstack.getCount() - j1);
+						entityitem = new EntityItem(world, (float)pos.getX() + f, (float)pos.getY() + f1, (float)pos.getZ() + f2, new ItemStack(oldItem, j1, itemstack.getItemDamage()));
 						float f3 = 0.05F;
-						entityitem.motionX = (double)((float)world.rand.nextGaussian() * f3);
-						entityitem.motionY = (double)((float)world.rand.nextGaussian() * f3 + 0.2F);
-						entityitem.motionZ = (double)((float)world.rand.nextGaussian() * f3);
+						entityitem.motionX = (float)world.rand.nextGaussian() * f3;
+						entityitem.motionY = (float)world.rand.nextGaussian() * f3 + 0.2F;
+						entityitem.motionZ = (float)world.rand.nextGaussian() * f3;
 
-						if (itemstack.hasTagCompound())
+						if (oldStack.hasTagCompound())
 						{
-							entityitem.getEntityItem().setTagCompound((NBTTagCompound)itemstack.getTagCompound().copy());
+							NBTTagCompound tag = oldStack.getTagCompound();
+							entityitem.getItem().setTagCompound(tag == null ? null : tag.copy());
 						}
-						
-						world.spawnEntityInWorld(entityitem);
+						world.spawnEntity(entityitem);
 					}
 				}
 			}
 
-			world.func_147453_f(x, y, z, block);
 		}
 
-		super.breakBlock(world, x, y, z, block, meta);
+		super.breakBlock(world, pos, state);
 	}
 }

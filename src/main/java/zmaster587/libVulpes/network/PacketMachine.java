@@ -1,17 +1,18 @@
 package zmaster587.libVulpes.network;
 
 import io.netty.buffer.ByteBuf;
-import zmaster587.libVulpes.util.INetworkMachine;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.DimensionManager;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import zmaster587.libVulpes.util.INetworkMachine;
 
 public class PacketMachine extends BasePacket {
 
@@ -23,7 +24,7 @@ public class PacketMachine extends BasePacket {
 
 	public PacketMachine() {
 		nbt = new NBTTagCompound();
-	};
+	}
 
 	public PacketMachine(INetworkMachine machine, byte packetId) {
 		this();
@@ -34,10 +35,10 @@ public class PacketMachine extends BasePacket {
 
 	@Override
 	public void write(ByteBuf outline) {
-		outline.writeInt(((TileEntity)machine).getWorldObj().provider.dimensionId);
-		outline.writeInt(((TileEntity)machine).xCoord);
-		outline.writeInt(((TileEntity)machine).yCoord);
-		outline.writeInt(((TileEntity)machine).zCoord);
+		outline.writeInt(((TileEntity)machine).getWorld().provider.getDimension());
+		outline.writeInt(((TileEntity)machine).getPos().getX());
+		outline.writeInt(((TileEntity)machine).getPos().getY());
+		outline.writeInt(((TileEntity)machine).getPos().getZ());
 
 		outline.writeByte(packetId);
 
@@ -53,15 +54,15 @@ public class PacketMachine extends BasePacket {
 	public void readClient(ByteBuf in) {
 		//DEBUG:
 		in.readInt();
-		World world = Minecraft.getMinecraft().theWorld;
+		World world = Minecraft.getMinecraft().world;
 		int x = in.readInt();
 		int y = in.readInt();
 		int z = in.readInt();
 		packetId = in.readByte();
 
-		TileEntity ent = world.getTileEntity(x, y, z);
+		TileEntity ent = world.getTileEntity(new BlockPos(x, y, z));
 
-		if(ent != null && ent instanceof INetworkMachine) {
+		if(ent instanceof INetworkMachine) {
 			machine = (INetworkMachine)ent;
 			machine.readDataFromNetwork(in, packetId, nbt);
 		}
@@ -81,12 +82,13 @@ public class PacketMachine extends BasePacket {
 		int z = in.readInt();
 		packetId = in.readByte();
 
-		Chunk chunk = world.getChunkFromBlockCoords(x, z);
+		BlockPos pos = new BlockPos(x,y,z);
+		Chunk chunk = world.getChunkFromBlockCoords(pos);
 
-		if(chunk != null && chunk.isChunkLoaded) {
-			TileEntity ent = world.getTileEntity(x, y, z);
+		if(chunk.isLoaded()) {
+			TileEntity ent = world.getTileEntity(pos);
 
-			if(ent != null && ent instanceof INetworkMachine) {
+			if(ent instanceof INetworkMachine) {
 				machine = (INetworkMachine)ent;
 				machine.readDataFromNetwork(in, packetId, nbt);
 			}

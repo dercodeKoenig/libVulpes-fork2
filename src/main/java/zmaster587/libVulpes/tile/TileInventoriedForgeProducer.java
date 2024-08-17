@@ -5,8 +5,10 @@ import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
-import net.minecraftforge.common.util.ForgeDirection;
 import zmaster587.libVulpes.util.EmbeddedInventory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public abstract class TileInventoriedForgeProducer extends TileEntityForgeProducer implements ISidedInventory {
 
@@ -18,15 +20,17 @@ public abstract class TileInventoriedForgeProducer extends TileEntityForgeProduc
 	}
 
 	@Override
-	public void writeToNBT(NBTTagCompound nbt) {
+	public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
 		super.writeToNBT(nbt);
 
 		inventory.writeToNBT(nbt);
+		return nbt;
 	}
-	
+
 	@Override
-	public int[] getAccessibleSlotsFromSide(int p_94128_1_) {
-		int i[] = new int[inventory.getSizeInventory()];
+	@Nonnull
+	public int[] getSlotsForFace(@Nullable EnumFacing side) {
+		int[] i = new int[inventory.getSizeInventory()];
 
 		for(int j = 0; j < i.length; j++) { i[j] = j;}
 
@@ -34,8 +38,8 @@ public abstract class TileInventoriedForgeProducer extends TileEntityForgeProduc
 	}
 
 	@Override
-	public boolean isItemValidForSlot(int index, ItemStack stack) {
-		return false;
+	public boolean isItemValidForSlot(int index, @Nonnull ItemStack stack) {
+		return true;
 	}
 
 	@Override
@@ -51,30 +55,32 @@ public abstract class TileInventoriedForgeProducer extends TileEntityForgeProduc
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack getStackInSlot(int slot) {
 		return inventory.getStackInSlot(slot);
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack decrStackSize(int slot, int amt) {
 		return inventory.decrStackSize(slot, amt);
 	}
 
 
 	@Override
-	public void setInventorySlotContents(int slot, ItemStack stack) {
+	public void setInventorySlotContents(int slot, @Nonnull ItemStack stack) {
 		inventory.setInventorySlotContents(slot, stack);
 	}
 
 
 	@Override
-	public boolean hasCustomInventoryName() {
+	public boolean hasCustomName() {
 		return false;
 	}
-	
 
 	@Override
-	public String getInventoryName() {
+	@Nullable
+	public String getName() {
 		return null;
 	}
 
@@ -84,39 +90,61 @@ public abstract class TileInventoriedForgeProducer extends TileEntityForgeProduc
 	}
 
 	@Override
-	public boolean isUseableByPlayer(EntityPlayer player) {
-		return player.getDistanceSq(xCoord, yCoord, zCoord) < 64;
+	public boolean isUsableByPlayer(EntityPlayer player) {
+		return player.getDistanceSq(this.pos) < 64;
 	}
+	
 	@Override
-	public void openInventory() {
-		inventory.openInventory();
+	public boolean isEmpty() {
+		return inventory.isEmpty();
+	}
+	
+	@Override
+	public void openInventory(EntityPlayer player) {
+		inventory.openInventory(player);
 	}
 
 	@Override
-	public void closeInventory() {
-		inventory.closeInventory();
+	public void closeInventory(EntityPlayer player) {
+		inventory.closeInventory(player);
 	}
 
 	@Override
-	public boolean canInsertItem(int index, ItemStack itemStackIn,
-			int direction) {
+	public boolean canInsertItem(int index, @Nonnull ItemStack itemStackIn,
+			EnumFacing direction) {
 		return inventory.canInsertItem(index, itemStackIn, direction);
 	}
 
 	@Override
-	public boolean canExtractItem(int index, ItemStack stack,
-			int direction) {
+	public boolean canExtractItem(int index, @Nonnull ItemStack stack,
+			EnumFacing direction) {
 		return inventory.canExtractItem(index, stack, direction);
-	}
-	
-	@Override
-	public boolean canInteractWithContainer(EntityPlayer entity) {
-		return true;
 	}
 
 	@Override
-	public ItemStack getStackInSlotOnClosing(int slot) {
-		return inventory.getStackInSlotOnClosing(slot);
+	@Nonnull
+	public ItemStack removeStackFromSlot(int index) {
+		return inventory.removeStackFromSlot(index);
+	}
+
+	@Override
+	public int getField(int id) {
+		return inventory.getField(id);
+	}
+
+	@Override
+	public void setField(int id, int value) {
+		inventory.setField(id, value);
+	}
+
+	@Override
+	public int getFieldCount() {
+		return inventory.getFieldCount();
+	}
+
+	@Override
+	public void clear() {
+		inventory.clear();
 	}
 
 }

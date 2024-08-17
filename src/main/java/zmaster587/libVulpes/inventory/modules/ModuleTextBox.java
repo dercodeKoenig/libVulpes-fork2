@@ -1,14 +1,14 @@
 package zmaster587.libVulpes.inventory.modules;
 
-import org.lwjgl.input.Keyboard;
-
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import zmaster587.libVulpes.inventory.GuiModular;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import org.lwjgl.input.Keyboard;
+import zmaster587.libVulpes.inventory.GuiModular;
 
 public class ModuleTextBox extends ModuleBase {
 
@@ -17,26 +17,26 @@ public class ModuleTextBox extends ModuleBase {
 	String currentText;
 	IGuiCallback tile;
 
-	@SideOnly(Side.CLIENT)
 	public ModuleTextBox(IGuiCallback tile, int offsetX, int offsetY, int sizeX, int sizeY, int maxStrLen) {
 		super(offsetX, offsetY);
 		this.tile = tile;
-		textBox = new GuiTextField(Minecraft.getMinecraft().fontRenderer ,offsetX, offsetY, sizeX, sizeY);
-		textBox.setCanLoseFocus(true);
-		textBox.setFocused(false);
-		textBox.setEnabled(true);
-		textBox.setMaxStringLength(maxStrLen);
-		textBox.setEnableBackgroundDrawing(true);
+		if(FMLCommonHandler.instance().getSide().isClient()) {
+			textBox = new GuiTextField(0, Minecraft.getMinecraft().fontRenderer ,offsetX, offsetY, sizeX, sizeY);
+			textBox.setCanLoseFocus(true);
+			textBox.setFocused(false);
+			textBox.setEnabled(true);
+			textBox.setMaxStringLength(maxStrLen);
+			textBox.setEnableBackgroundDrawing(true);
+		}
 		currentText = "";
 	}
 
-	public ModuleTextBox(IGuiCallback tile, int offsetX, int offsetY, String initialString) {
+	protected ModuleTextBox(IGuiCallback tile, int offsetX, int offsetY, String initialString) {
 		super(offsetX, offsetY);
-		
+
 		this.tile = tile;
 		currentText = initialString;
 	}
-
 
 	@Override
 	public boolean keyTyped(char chr, int t) {
@@ -55,7 +55,7 @@ public class ModuleTextBox extends ModuleBase {
 				return false;
 			}
 		}
-			
+
 		return true;
 	}
 
@@ -85,7 +85,7 @@ public class ModuleTextBox extends ModuleBase {
 	public void setText(String str) {
 		textBox.setText(str);
 	}
-	
+
 	public String getText() {
 		return textBox.getText();
 	}

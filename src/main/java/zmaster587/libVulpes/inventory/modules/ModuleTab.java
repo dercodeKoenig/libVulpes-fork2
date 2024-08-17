@@ -1,20 +1,20 @@
 package zmaster587.libVulpes.inventory.modules;
 
-import java.util.List;
-
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import zmaster587.libVulpes.inventory.GuiModular;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import zmaster587.libVulpes.inventory.GuiModular;
+
+import java.util.List;
 
 public class ModuleTab extends ModuleBase implements IButtonInventory {
 
 	private int tab;
 	IGuiCallback gameObject;
-	private ModuleButton buttons[];
+	private ModuleButton[] buttons;
 	
 	public ModuleTab(int offsetX, int offsetY,int startingId, IGuiCallback object, int numTabs, String[] tabText, ResourceLocation[][] textures) {
 		super(offsetX, offsetY);
@@ -25,7 +25,8 @@ public class ModuleTab extends ModuleBase implements IButtonInventory {
 		for(int i = 0; i  < numTabs; i++) {
 			buttons[i] = new ModuleButton(offsetX + i*24, offsetY - 20, i, "", this, textures[i], tabText[i], 24,24);
 		}
-		
+		sizeX = 24;
+		sizeY = 24;
 	}
 	
 	
@@ -62,7 +63,6 @@ public class ModuleTab extends ModuleBase implements IButtonInventory {
 	@Override
 	public void renderForeground(int guiOffsetX, int guiOffsetY, int mouseX,
 			int mouseY, float zLevel, GuiContainer gui, FontRenderer font) {
-		// TODO Auto-generated method stub
 		super.renderForeground(guiOffsetX, guiOffsetY, mouseX, mouseY, zLevel, gui,
 				font);
 		

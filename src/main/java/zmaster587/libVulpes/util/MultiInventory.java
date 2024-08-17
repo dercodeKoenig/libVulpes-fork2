@@ -1,10 +1,13 @@
 package zmaster587.libVulpes.util;
 
-import java.util.List;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.text.ITextComponent;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.List;
 
 public class MultiInventory implements IInventory {
 
@@ -24,6 +27,7 @@ public class MultiInventory implements IInventory {
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack getStackInSlot(int i) {
 		for(IInventory inv : inventories) {
 			if(i >= inv.getSizeInventory()) {
@@ -32,10 +36,11 @@ public class MultiInventory implements IInventory {
 			}
 			return inv.getStackInSlot(i);
 		}
-		return null;
+		return ItemStack.EMPTY;
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack decrStackSize(int i, int j) {
 		
 		for(IInventory inv : inventories) {
@@ -45,23 +50,12 @@ public class MultiInventory implements IInventory {
 			}
 			return inv.decrStackSize(i, j);
 		}
-		return null;
+		return ItemStack.EMPTY;
 	}
 
-	@Override
-	public ItemStack getStackInSlotOnClosing(int i) {
-		for(IInventory inv : inventories) {
-			if(i >= inv.getSizeInventory()) {
-				i -= inv.getSizeInventory();
-				continue;
-			}
-			return inv.getStackInSlotOnClosing(i);
-		}
-		return null;
-	}
 
 	@Override
-	public void setInventorySlotContents(int i, ItemStack j) {
+	public void setInventorySlotContents(int i, @Nonnull ItemStack j) {
 		for(IInventory inv : inventories) {
 			if(i >= inv.getSizeInventory()) {
 				i -= inv.getSizeInventory();
@@ -70,16 +64,6 @@ public class MultiInventory implements IInventory {
 			inv.setInventorySlotContents(i,j);
 			return;
 		}
-	}
-
-	@Override
-	public String getInventoryName() {
-		return null;
-	}
-
-	@Override
-	public boolean hasCustomInventoryName() {
-		return false;
 	}
 
 	@Override
@@ -93,24 +77,21 @@ public class MultiInventory implements IInventory {
 	}
 
 	@Override
-	public boolean isUseableByPlayer(EntityPlayer p_70300_1_) {
+	public boolean isUsableByPlayer(@Nullable EntityPlayer p_70300_1_) {
+		return true;
+	}
+	
+	@Override
+	public boolean isEmpty() {
+		for(IInventory inv : inventories ) {
+			if(!inv.isEmpty())
+				return false;
+		}
 		return true;
 	}
 
 	@Override
-	public void openInventory() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void closeInventory() {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public boolean isItemValidForSlot(int i, ItemStack j) {
+	public boolean isItemValidForSlot(int i, @Nonnull ItemStack j) {
 		
 		for(IInventory inv : inventories) {
 			if(i >= inv.getSizeInventory()) {
@@ -121,5 +102,71 @@ public class MultiInventory implements IInventory {
 			
 		}
 		return false;
+	}
+
+	@Override
+	@Nullable
+	public String getName() {
+		return null;
+	}
+
+	@Override
+	public boolean hasCustomName() {
+		return false;
+	}
+
+	@Override
+	@Nullable
+	public ITextComponent getDisplayName() {
+		return null;
+	}
+
+	@Override
+	@Nonnull
+	public ItemStack removeStackFromSlot(int index) {
+		for(IInventory inv : inventories) {
+			if(index >= inv.getSizeInventory()) {
+				index -= inv.getSizeInventory();
+				continue;
+			}
+			return inv.removeStackFromSlot(index);
+			
+		}
+		return ItemStack.EMPTY;
+	}
+
+	@Override
+	public void openInventory(EntityPlayer player) {
+		
+	}
+
+	@Override
+	public void closeInventory(EntityPlayer player) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public int getField(int id) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public void setField(int id, int value) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public int getFieldCount() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public void clear() {
+		// TODO Auto-generated method stub
+		
 	}
 }

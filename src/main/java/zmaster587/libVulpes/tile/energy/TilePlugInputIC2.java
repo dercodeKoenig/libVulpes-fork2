@@ -1,16 +1,21 @@
 package zmaster587.libVulpes.tile.energy;
 
-import zmaster587.libVulpes.Configuration;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.util.ForgeDirection;
 import ic2.api.energy.event.EnergyTileLoadEvent;
 import ic2.api.energy.event.EnergyTileUnloadEvent;
+import ic2.api.energy.tile.IEnergyEmitter;
 import ic2.api.energy.tile.IEnergySink;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ITickable;
+import net.minecraftforge.common.MinecraftForge;
+import zmaster587.libVulpes.Configuration;
 
-public class TilePlugInputIC2 extends TilePlugOutputRF implements IEnergySink {
+import javax.annotation.Nullable;
+
+public class TilePlugInputIC2 extends TileForgePowerOutput implements IEnergySink, 
+ITickable {
 
 	public TilePlugInputIC2() {
+		super();
 	}
 	boolean tickedOnce = false;
 	@Override
@@ -18,48 +23,47 @@ public class TilePlugInputIC2 extends TilePlugOutputRF implements IEnergySink {
 		return "tile.IC2Plug.name";
 	}
 
-	
-	@Override
-	public boolean canUpdate() {
-		return true;
-	}
+	//[Redacted]
+	//Apologies for the previous comment located here
 
-	//TODO: find a way of doing this that doesn't tick all the time
 	@Override
-	public void updateEntity() {
-		if(!worldObj.isRemote && !tickedOnce) {
-			MinecraftForge.EVENT_BUS.post(new EnergyTileLoadEvent(this));
+	public void update() {
+		super.update();
+		if(!tickedOnce) {
+			if(!world.isRemote)
+				MinecraftForge.EVENT_BUS.post(new EnergyTileLoadEvent(this));
 			tickedOnce = true;
 		}
-		super.updateEntity();
 	}
-	
+
 	@Override
 	public void invalidate() {
 		super.invalidate();
-		MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(this));
+		if(tickedOnce && !world.isRemote)
+			MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(this));
 	}
 
 	@Override
 	public void onChunkUnload() {
 		super.onChunkUnload();
-		MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(this));
+		if(tickedOnce && !world.isRemote)
+			MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(this));
 	}
-	
+
 	@Override
-	public String getInventoryName() {
+	@Nullable
+	public String getName() {
 		return null;
 	}
 
 	@Override
-	public boolean acceptsEnergyFrom(TileEntity emitter,
-			ForgeDirection direction) {
+	public boolean acceptsEnergyFrom(IEnergyEmitter emitter, EnumFacing side) {
 		return true;
 	}
 
 	@Override
 	public double getDemandedEnergy() {
-		return Math.min(getMaxEnergyStored() - getEnergyStored(), 128.0);
+		return Math.min(getMaxEnergyStored() - getUniversalEnergyStored(), 128.0);
 	}
 
 	@Override
@@ -68,15 +72,25 @@ public class TilePlugInputIC2 extends TilePlugOutputRF implements IEnergySink {
 	}
 
 	@Override
-	public double injectEnergy(ForgeDirection directionFrom, double amount,
+	public double injectEnergy(EnumFacing directionFrom, double amount,
 			double voltage) {
 		storage.acceptEnergy((int)(amount*Configuration.EUMult), false);
 		return 0;
 	}
-	
+
 	@Override
 	public int acceptEnergy(int amt, boolean simulate) {
 		return 0;
 	}
-	
+
+	@Override
+	public boolean canReceive() {
+		return false;
+	}
+
+	@Override
+	public boolean canExtract() {
+		return true;
+	}
+
 }

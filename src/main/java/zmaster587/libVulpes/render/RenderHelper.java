@@ -1,27 +1,27 @@
 package zmaster587.libVulpes.render;
 
-import java.util.StringTokenizer;
-
-import org.lwjgl.opengl.GL11;
-
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockGrass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.renderer.RenderBlocks;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.RenderItem;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
 import net.minecraft.client.renderer.entity.RenderManager;
-import net.minecraft.entity.Entity;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.IIcon;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.entity.item.EntityItem;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import org.lwjgl.opengl.GL11;
+
+import javax.annotation.Nonnull;
 
 @SideOnly(Side.CLIENT)
 public class RenderHelper {
-	
+
 	/**
 	 * 
 	 * @param text text to render
@@ -29,34 +29,34 @@ public class RenderHelper {
 	 * @param vertLetters max letters in vertial direction
 	 * @param font resource location of the font to use
 	 */
-	public static void renderText(TextPart text, int horizontalLetter, int vertLetters, ResourceLocation font) {
-		
+	/*public static void renderText(TextPart text, int horizontalLetter, int vertLetters, ResourceLocation font) {
+
 		StringTokenizer tokens = new StringTokenizer(text.text, "\n");
 		Tessellator tess = Tessellator.instance;
-		
+
 		//tess.setColorRGBA(text.colorRGBA & 255, (text.colorRGBA << 8) & 255, (text.colorRGBA << 16) & 255, (text.colorRGBA << 24) & 255);
-		
+
 		GL11.glColor3ub((byte)((text.colorRGBA >> 16) & 255), (byte)((text.colorRGBA >> 8) & 255), (byte)(text.colorRGBA & 255));//, (byte)((text.colorRGBA >> 24) & 255));
-		
-		
+
+
 		tess.startDrawingQuads();
 		for(int line = 0; line < vertLetters && tokens.hasMoreTokens(); line++) {
 			String token = tokens.nextToken();
-			
+
 			for(int i = 0 ; i < token.length() && i < horizontalLetter; i++) {
 				tess.addVertexWithUV(text.offsetX + text.size*i, text.offsetY -text.size*line - text.size, 0, (8*(token.charAt(i) % 16) + (token.charAt(i) % 16))/145D, (1/145D) + (8*(1 + (token.charAt(i) / 16)) + (token.charAt(i)/16))/145D);
 				tess.addVertexWithUV(text.offsetX + text.size*i + text.size, text.offsetY - text.size*line - text.size, 0, (8*(1 + (token.charAt(i) % 16)) + (token.charAt(i) % 16))/145D, (1/145D) + (8*(1 + (token.charAt(i) / 16)) + (token.charAt(i)/16))/145D);
 				tess.addVertexWithUV(text.offsetX + text.size*i + text.size, text.offsetY - text.size*line, 0, (8*(1 + (token.charAt(i) % 16)) + (token.charAt(i) % 16))/145D, (8*(token.charAt(i) / 16) + (token.charAt(i)/16))/145D);
 				tess.addVertexWithUV(text.offsetX + text.size*i, text.offsetY - text.size*line, 0, (8*(token.charAt(i) % 16) + (token.charAt(i) % 16))/145D,(8*(token.charAt(i) / 16) + (token.charAt(i)/16))/145D);
-				
+
 			}
 		}
 		tess.draw();
 	}
-	
+
     /**
-     * Renders a standard cube block at the given coordinates, with a given color ratio.  Args: block, x, y, z, r, g, b, a
-     */
+	 * Renders a standard cube block at the given coordinates, with a given color ratio.  Args: block, x, y, z, r, g, b, a
+	 * /
     public static boolean renderStandardBlockWithColorMultiplier(Block p_147736_1_, int p_147736_2_, int p_147736_3_, int p_147736_4_, float p_147736_5_, float p_147736_6_, float p_147736_7_, float alpha)
     {
     	RenderBlocks renderBlocks = RenderBlocks.getInstance();
@@ -178,56 +178,63 @@ public class RenderHelper {
         }
 
         return flag;
-    }
-	
+    }*/
+
 	public static void renderTag(double distanceSq, String displayString, double x, double y, double z, int sizeOnScreen) {
-        double d3 = distanceSq;
-
-        Minecraft mc = Minecraft.getMinecraft();
-        RenderManager renderManager = RenderManager.instance;
-        if (d3 <= (double)(sizeOnScreen * sizeOnScreen))
-        {
-            FontRenderer fontrenderer = mc.fontRenderer;
-            float f = 1.6F;
-            float f1 = 0.016666668F * f;
-            GL11.glPushMatrix();
-            GL11.glTranslatef((float)x + 0.0F, (float)y + 0.5F, (float)z);
-            GL11.glNormal3f(0.0F, 1.0F, 0.0F);
-            GL11.glRotatef(-renderManager.playerViewY, 0.0F, 1.0F, 0.0F);
-            GL11.glRotatef(renderManager.playerViewX, 1.0F, 0.0F, 0.0F);
-            GL11.glScalef(-f1, -f1, f1);
-            GL11.glDisable(GL11.GL_LIGHTING);
-            GL11.glDepthMask(false);
-            GL11.glDisable(GL11.GL_DEPTH_TEST);
-            GL11.glEnable(GL11.GL_BLEND);
-            OpenGlHelper.glBlendFunc(770, 771, 1, 0);
-            Tessellator tessellator = Tessellator.instance;
-            byte b0 = 0;
-
-            GL11.glDisable(GL11.GL_TEXTURE_2D);
-            tessellator.startDrawingQuads();
-            int j = fontrenderer.getStringWidth(displayString) / 2;
-            tessellator.setColorRGBA_F(0.0F, 0.0F, 0.0F, 0.25F);
-            tessellator.addVertex((double)(-j - 1), (double)(-1 + b0), 0.0D);
-            tessellator.addVertex((double)(-j - 1), (double)(8 + b0), 0.0D);
-            tessellator.addVertex((double)(j + 1), (double)(8 + b0), 0.0D);
-            tessellator.addVertex((double)(j + 1), (double)(-1 + b0), 0.0D);
-            tessellator.draw();
-            GL11.glEnable(GL11.GL_TEXTURE_2D);
-            fontrenderer.drawString(displayString, -fontrenderer.getStringWidth(displayString) / 2, b0, 553648127);
-           
-            GL11.glDepthMask(true);
-            fontrenderer.drawString(displayString, -fontrenderer.getStringWidth(displayString) / 2, b0, -1);
-            GL11.glEnable(GL11.GL_LIGHTING);
-            GL11.glEnable(GL11.GL_DEPTH_TEST);
-            GL11.glDisable(GL11.GL_BLEND);
-            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-            GL11.glPopMatrix();
-        }
+		renderTag(distanceSq, displayString, x,y,z, 6, 1);
 	}
 	
+	public static void renderTag(double distanceSq, String displayString, double x, double y, double z, int sizeOnScreen, float scale) {
+		double d3 = distanceSq;
+
+		Minecraft mc = Minecraft.getMinecraft();
+		RenderManager renderManager = mc.getRenderManager();
+		if (d3 <= (double)(sizeOnScreen * sizeOnScreen))
+		{
+			FontRenderer fontrenderer = mc.fontRenderer;
+			float f = 1.6F*scale;
+			float f1 = 0.016666668F * f;
+			GL11.glPushMatrix();
+			GL11.glTranslatef((float)x + 0.0F, (float)y + 0.5F, (float)z);
+			GL11.glRotatef(-renderManager.playerViewY, 0.0F, 1.0F, 0.0F);
+			GL11.glRotatef(renderManager.playerViewX, 1.0F, 0.0F, 0.0F);
+			GL11.glScalef(-f1, -f1, f1);
+			GlStateManager.disableLighting();
+			GlStateManager.depthMask(false);
+			GlStateManager.disableDepth();
+			GlStateManager.enableBlend();
+			GlStateManager.blendFunc(770, 771);
+			Tessellator tessellator = Tessellator.getInstance();
+			byte b0 = 0;
+
+			BufferBuilder buffer = tessellator.getBuffer();
+
+			GlStateManager.disableTexture2D();
+			buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION);
+			int j = fontrenderer.getStringWidth(displayString) / 2;
+			GlStateManager.color(0.0F, 0.0F, 0.0F, 0.25F);
+			buffer.pos(-j - 1, -1 + b0, 0.0D).endVertex();
+			buffer.pos(-j - 1, 8 + b0, 0.0D).endVertex();
+			buffer.pos(j + 1, 8 + b0, 0.0D).endVertex();
+			buffer.pos(j + 1, -1 + b0, 0.0D).endVertex();
+			tessellator.draw();
+			GlStateManager.enableTexture2D();
+			fontrenderer.drawString(displayString, -fontrenderer.getStringWidth(displayString) / 2, b0, 553648127);
+
+			GlStateManager.depthMask(true);
+			fontrenderer.drawString(displayString, -fontrenderer.getStringWidth(displayString) / 2, b0, -1);
+			GlStateManager.enableLighting();
+			GlStateManager.enableDepth();
+			GlStateManager.disableBlend();
+			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+			GL11.glPopMatrix();
+		}
+	}
+
 	public static void setupPlayerFacingMatrix(double distanceSq, double x, double y, double z) {
-		RenderManager renderManager = RenderManager.instance;
+
+		Minecraft mc = Minecraft.getMinecraft();
+		RenderManager renderManager = mc.getRenderManager();
 		float f = 1.6F;
 		float f1 = 0.016666668F * f;
 		GL11.glPushMatrix();
@@ -241,201 +248,257 @@ public class RenderHelper {
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		GL11.glPopMatrix();
 	}
-	
-	public static void renderBlockWithEndPointers(Tessellator tess, double radius, double x1, double y1, double z1, double x2, double y2, double z2) {
+
+	public static void renderBlockWithEndPointers(BufferBuilder buff, double radius, double x1, double y1, double z1, double x2, double y2, double z2) {
 		double buffer;
-		
+		renderBottomFaceEndpoints(buff, radius, x1, y1 - radius/2d, z1, x2, y2 - radius/2d, z2);
+		renderTopFaceEndpoints(buff, radius, x1, y1 + radius/2d, z1, x2, y2 + radius/2d, z2);
+		renderNorthFaceEndpoints(buff, radius, x1, y1, z1 + radius/2d, x2, y2, z2 + radius/2d);
+		renderSouthFaceEndpoints(buff, radius, x1, y1, z1 - radius/2d, x2, y2, z2 - radius/2d);
+		renderEastFaceEndpoints(buff, radius, x1 + radius/2d, y1, z1, x2 + radius/2d, y2, z2);
+		renderWestFaceEndpoints(buff, radius, x1 - radius/2d, y1, z1, x2 - radius/2d, y2, z2);
+	}
 
-		
-		//renderBottomFaceEndpoints(tess, radius, x1, y1 - radius/2d, z1, x2, y2 - radius/2d, z2);
-		renderTopFaceEndpoints(tess, radius, x1, y1 + radius/2d, z1, x2, y2 + radius/2d, z2);
-		//renderNorthFaceEndpoints(tess, radius, x1, y1, z1 + radius/2d, x2, y2, z2 + radius/2d);
-		//renderSouthFaceEndpoints(tess, radius, x1, y1, z1 - radius/2d, x2, y2, z2 - radius/2d);
-		//renderEastFaceEndpoints(tess, radius, x1 + radius/2d, y1, z1, x2 + radius/2d, y2, z2);
-		//renderWestFaceEndpoints(tess, radius, x1 - radius/2d, y1, z1, x2 - radius/2d, y2, z2);
+	public static void renderCrossXZ(BufferBuilder buff, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
+		renderTopFaceEndpoints(buff, width, xMin, yMin, zMin, xMax, yMax, zMax);
+		renderBottomFaceEndpoints(buff, width, xMin, yMin, zMin, xMax, yMax, zMax);
+		renderNorthFaceEndpoints(buff, width, xMin, yMin, zMin, xMax, yMax, zMax);
+		renderSouthFaceEndpoints(buff, width, xMin, yMin, zMin, xMax, yMax, zMax);
 	}
-	
-	public static void renderCrossXZ(Tessellator tess, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
-		renderTopFaceEndpoints(tess, width, xMin, yMin, zMin, xMax, yMax, zMax);
-		renderBottomFaceEndpoints(tess, width, xMin, yMin, zMin, xMax, yMax, zMax);
-		renderNorthFaceEndpoints(tess, width, xMin, yMin, zMin, xMax, yMax, zMax);
-		renderSouthFaceEndpoints(tess, width, xMin, yMin, zMin, xMax, yMax, zMax);
-	}
-		
-	
-	public static void renderTopFace(Tessellator tess, double yMax, double xMin, double zMin, double xMax, double zMax) {
+
+
+	public static void renderTopFace(BufferBuilder buff, double yMax, double xMin, double zMin, double xMax, double zMax) {
 		//top
-		tess.setNormal(0, 1, 0);
-		tess.addVertex(xMin, yMax, zMin);
-		tess.addVertex(xMin, yMax, zMax);
-		tess.addVertex(xMax, yMax, zMax);
-		tess.addVertex(xMax, yMax, zMin);
-		
+		buff.pos(xMin, yMax, zMin).normal(0, 1, 0).endVertex();
+		buff.pos(xMin, yMax, zMax).normal(0, 1, 0).endVertex();
+		buff.pos(xMax, yMax, zMax).normal(0, 1, 0).endVertex();
+		buff.pos(xMax, yMax, zMin).normal(0, 1, 0).endVertex();
+
 	}
-	
-	public static void renderTopFaceEndpoints(Tessellator tess, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
+
+	public static void renderTopFaceEndpoints(BufferBuilder buff, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
 		//top
-		tess.addVertex(xMin, yMin, zMin - width);
-		tess.addVertex(xMin, yMin, zMin + width);
-		tess.addVertex(xMax, yMax, zMax + width);
-		tess.addVertex(xMax, yMax, zMax - width);
-		
+		buff.pos(xMin, yMin, zMin - width).normal(0, 1, 0).endVertex();
+		buff.pos(xMin, yMin, zMin + width).normal(0, 1, 0).endVertex();
+		buff.pos(xMax, yMax, zMax + width).normal(0, 1, 0).endVertex();
+		buff.pos(xMax, yMax, zMax - width).normal(0, 1, 0).endVertex();
+
 	}
-	
-	public static void renderBottomFace(Tessellator tess, double yMax, double xMin, double zMin, double xMax, double zMax) {
+
+	public static void renderBottomFace(BufferBuilder buff, double yMax, double xMin, double zMin, double xMax, double zMax) {
 		//bottom
-		tess.setNormal(0, -1, 0);
-		tess.addVertex(xMax, yMax, zMin);
-		tess.addVertex(xMax, yMax, zMax);
-		tess.addVertex(xMin, yMax, zMax);
-		tess.addVertex(xMin, yMax, zMin);
-		
+		buff.pos(xMax, yMax, zMin).normal(0, -1, 0).endVertex();
+		buff.pos(xMax, yMax, zMax).normal(0, -1, 0).endVertex();
+		buff.pos(xMin, yMax, zMax).normal(0, -1, 0).endVertex();
+		buff.pos(xMin, yMax, zMin).normal(0, -1, 0).endVertex();
 	}
 
-	public static void renderBottomFaceEndpoints(Tessellator tess, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
+	public static void renderBottomFaceEndpoints(BufferBuilder buff, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
 		//top
-		tess.addVertex(xMin, yMin, zMin + width);
-		tess.addVertex(xMin, yMin, zMin - width);
-		tess.addVertex(xMax, yMax, zMax - width);
-		tess.addVertex(xMax, yMax, zMax + width);
+		buff.pos(xMin, yMin, zMin + width).normal(0, -1, 0).endVertex();
+		buff.pos(xMin, yMin, zMin - width).normal(0, -1, 0).endVertex();
+		buff.pos(xMax, yMax, zMax - width).normal(0, -1, 0).endVertex();
+		buff.pos(xMax, yMax, zMax + width).normal(0, -1, 0).endVertex();
 	}	
-	
-	public static void renderNorthFace(Tessellator tess, double zMin, double xMin, double yMin, double xMax, double yMax) {
+
+	public static void renderNorthFace(BufferBuilder buff, double zMin, double xMin, double yMin, double xMax, double yMax) {
 		//north
-		tess.setNormal(0, 0, 1);
-		tess.addVertex(xMin, yMax, zMin);
-		tess.addVertex(xMax, yMax, zMin);
-		tess.addVertex(xMax, yMin, zMin);
-		tess.addVertex(xMin, yMin, zMin);
+		buff.pos(xMin, yMax, zMin).normal(0, 0, 1).endVertex();
+		buff.pos(xMax, yMax, zMin).normal(0, 0, 1).endVertex();
+		buff.pos(xMax, yMin, zMin).normal(0, 0, 1).endVertex();
+		buff.pos(xMin, yMin, zMin).normal(0, 0, 1).endVertex();
 	}
-	
-	public static void renderNorthFaceEndpoints(Tessellator tess, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
+
+	public static void renderNorthFaceEndpoints(BufferBuilder buff, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
 		//north
-		tess.addVertex(xMin, yMin + width, zMin);
-		tess.addVertex(xMax, yMax + width, zMax);
-		tess.addVertex(xMax, yMax - width, zMax);
-		tess.addVertex(xMin, yMin - width, zMin);
+		buff.pos(xMin, yMin + width, zMin).normal(0, 0, 1).endVertex();
+		buff.pos(xMax, yMax + width, zMax).normal(0, 0, 1).endVertex();
+		buff.pos(xMax, yMax - width, zMax).normal(0, 0, 1).endVertex();
+		buff.pos(xMin, yMin - width, zMin).normal(0, 0, 1).endVertex();
 	}
-	
-	public static void renderSouthFace(Tessellator tess, double zMax, double xMin, double yMin, double xMax, double yMax) {
+
+	public static void renderSouthFace(BufferBuilder buff, double zMax, double xMin, double yMin, double xMax, double yMax) {
 		//south
-		tess.setNormal(0, 0, -1);
-		tess.addVertex(xMin, yMax, zMax);
-		tess.addVertex(xMin, yMin, zMax);
-		tess.addVertex(xMax, yMin, zMax);
-		tess.addVertex(xMax, yMax, zMax);
+		buff.pos(xMin, yMax, zMax).normal(0, 0, -1).endVertex();
+		buff.pos(xMin, yMin, zMax).normal(0, 0, -1).endVertex();
+		buff.pos(xMax, yMin, zMax).normal(0, 0, -1).endVertex();
+		buff.pos(xMax, yMax, zMax).normal(0, 0, -1).endVertex();
 	}
-	
-	public static void renderSouthFaceEndpoints(Tessellator tess, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
+
+	public static void renderSouthFaceEndpoints(BufferBuilder buff, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
 		//south
-		tess.addVertex(xMin, yMin + width, zMin);
-		tess.addVertex(xMin, yMin - width, zMin);
-		tess.addVertex(xMax, yMax - width, zMax);
-		tess.addVertex(xMax, yMax + width, zMax);
+		buff.pos(xMin, yMin + width, zMin).normal(0, 0, -1).endVertex();
+		buff.pos(xMin, yMin - width, zMin).normal(0, 0, -1).endVertex();
+		buff.pos(xMax, yMax - width, zMax).normal(0, 0, -1).endVertex();
+		buff.pos(xMax, yMax + width, zMax).normal(0, 0, -1).endVertex();
 	}
-		
-	public static void renderEastFace(Tessellator tess, double xMax, double yMin, double zMin, double yMax, double zMax) {
+
+	public static void renderEastFace(BufferBuilder buff, double xMax, double yMin, double zMin, double yMax, double zMax) {
 		//east
-		tess.setNormal(1, 0, 0);
-		tess.addVertex(xMax, yMax, zMin);
-		tess.addVertex(xMax, yMax, zMax);
-		tess.addVertex(xMax, yMin, zMax);
-		tess.addVertex(xMax, yMin, zMin);
+		buff.pos(xMax, yMax, zMin).normal(1, 0, 0).endVertex();
+		buff.pos(xMax, yMax, zMax).normal(1, 0, 0).endVertex();
+		buff.pos(xMax, yMin, zMax).normal(1, 0, 0).endVertex();
+		buff.pos(xMax, yMin, zMin).normal(1, 0, 0).endVertex();
 	}
-	
-	
-	public static void renderEastFaceEndpoints(Tessellator tess, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
+
+
+	public static void renderEastFaceEndpoints(BufferBuilder buff, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
 		//east
-		tess.addVertex(xMax, yMax + width, zMin);
-		tess.addVertex(xMax, yMax - width, zMax);
-		tess.addVertex(xMax, yMin - width, zMax);
-		tess.addVertex(xMax, yMin + width, zMin);
+		buff.pos(xMax, yMax + width, zMin).normal(1, 0, 0).endVertex();
+		buff.pos(xMax, yMax - width, zMax).normal(1, 0, 0).endVertex();
+		buff.pos(xMax, yMin - width, zMax).normal(1, 0, 0).endVertex();
+		buff.pos(xMax, yMin + width, zMin).normal(1, 0, 0).endVertex();
 	}
-	
-	public static void renderWestFace(Tessellator tess, double xMin, double yMin, double zMin, double yMax, double zMax) {
+
+	public static void renderWestFace(BufferBuilder buff, double xMin, double yMin, double zMin, double yMax, double zMax) {
 		//west
-		tess.setNormal(-1, 0, 0);
-		tess.addVertex(xMin, yMin, zMin);
-		tess.addVertex(xMin, yMin, zMax);
-		tess.addVertex(xMin, yMax, zMax);
-		tess.addVertex(xMin, yMax, zMin);
+		buff.pos(xMin, yMin, zMin).normal(-1, 0, 0).endVertex();
+		buff.pos(xMin, yMin, zMax).normal(-1, 0, 0).endVertex();
+		buff.pos(xMin, yMax, zMax).normal(-1, 0, 0).endVertex();
+		buff.pos(xMin, yMax, zMin).normal(-1, 0, 0).endVertex();
 	}
-	
-	public static void renderWestFaceEndpoints(Tessellator tess, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
+
+	public static void renderWestFaceEndpoints(BufferBuilder buff, double width, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
 		//west
-		tess.addVertex(xMin, yMin + width, zMin);
-		tess.addVertex(xMin, yMin - width, zMax);
-		tess.addVertex(xMin, yMax - width, zMax);
-		tess.addVertex(xMin, yMax + width, zMin);
+		buff.pos(xMin, yMin + width, zMin).normal(-1, 0, 0).endVertex();
+		buff.pos(xMin, yMin - width, zMax).normal(-1, 0, 0).endVertex();
+		buff.pos(xMin, yMax - width, zMax).normal(-1, 0, 0).endVertex();
+		buff.pos(xMin, yMax + width, zMin).normal(-1, 0, 0).endVertex();
 	}
-	
-	public static void renderTopFaceWithUV(Tessellator tess, double yMax, double xMin, double zMin, double xMax, double zMax, double uMin, double uMax, double vMin, double vMax) {
+
+	public static void renderTopFaceWithUV(BufferBuilder buff, double yMax, double xMin, double zMin, double xMax, double zMax, double uMin, double uMax, double vMin, double vMax) {
 		//top
-		tess.setNormal(0, 1, 0);
-		tess.addVertexWithUV(xMin, yMax, zMin, uMin, vMin);
-		tess.addVertexWithUV(xMin, yMax, zMax, uMin, vMax);
-		tess.addVertexWithUV(xMax, yMax, zMax, uMax, vMax);
-		tess.addVertexWithUV(xMax, yMax, zMin, uMax, vMin);
-		
-		
+		buff.pos(xMin, yMax, zMin).tex(uMin, vMin).endVertex();
+		buff.pos(xMin, yMax, zMax).tex(uMin, vMax).endVertex();
+		buff.pos(xMax, yMax, zMax).tex(uMax, vMax).endVertex();
+		buff.pos(xMax, yMax, zMin).tex(uMax, vMin).endVertex();
+
+
 	}
-	
-	public static void renderBottomFaceWithUV(Tessellator tess, double yMax, double xMin, double zMin, double xMax, double zMax, double uMin, double uMax, double vMin, double vMax) {
+
+	public static void renderBottomFaceWithUV(BufferBuilder buff, double yMax, double xMin, double zMin, double xMax, double zMax, double uMin, double uMax, double vMin, double vMax) {
 		//bottom
-		tess.setNormal(0, -1, 0);
-		tess.addVertexWithUV(xMax, yMax, zMin, uMin, vMax);
-		tess.addVertexWithUV(xMax, yMax, zMax, uMax, vMax);
-		tess.addVertexWithUV(xMin, yMax, zMax, uMax, vMin);
-		tess.addVertexWithUV(xMin, yMax, zMin, uMin, vMin);
-		
-		
+
+		buff.pos(xMax, yMax, zMax).tex(uMax, vMax).endVertex();
+		buff.pos(xMin, yMax, zMax).tex(uMin, vMax).endVertex();
+		buff.pos(xMin, yMax, zMin).tex(uMin, vMin).endVertex();
+		buff.pos(xMax, yMax, zMin).tex(uMax, vMin).endVertex();
+
 	}
-	
-	public static void renderNorthFaceWithUV(Tessellator tess, double zMin, double xMin, double yMin, double xMax, double yMax, double uMin, double uMax, double vMin, double vMax) {
+
+	public static void renderNorthFaceWithUV(BufferBuilder buff, double zMin, double xMin, double yMin, double xMax, double yMax, double uMin, double uMax, double vMin, double vMax) {
 		//north
-		tess.setNormal(0, 0, 1);
-		tess.addVertexWithUV(xMin, yMax, zMin, uMin, vMin);
-		tess.addVertexWithUV(xMax, yMax, zMin, uMax, vMin);
-		tess.addVertexWithUV(xMax, yMin, zMin, uMax, vMax);
-		tess.addVertexWithUV(xMin, yMin, zMin, uMin, vMax);
+		buff.pos(xMin, yMax, zMin).tex(uMin, vMin).endVertex();
+		buff.pos(xMax, yMax, zMin).tex(uMax, vMin).endVertex();
+		buff.pos(xMax, yMin, zMin).tex(uMax, vMax).endVertex();
+		buff.pos(xMin, yMin, zMin).tex(uMin, vMax).endVertex();
 	}
-	
-	public static void renderSouthFaceWithUV(Tessellator tess, double zMax, double xMin, double yMin, double xMax, double yMax, double uMin, double uMax, double vMin, double vMax) {
+
+	public static void renderNorthFaceWithUVNoNormal(BufferBuilder buff, double zMin, double xMin, double yMin, double xMax, double yMax, double uMin, double uMax, double vMin, double vMax) {
+		//north
+		buff.pos(xMin, yMax, zMin).tex(uMin, vMin).endVertex();
+		buff.pos(xMax, yMax, zMin).tex(uMax, vMin).endVertex();
+		buff.pos(xMax, yMin, zMin).tex(uMax, vMax).endVertex();
+		buff.pos(xMin, yMin, zMin).tex(uMin, vMax).endVertex();
+	}
+
+	public static void renderSouthFaceWithUV(BufferBuilder buff, double zMax, double xMin, double yMin, double xMax, double yMax, double uMin, double uMax, double vMin, double vMax) {
 		//south
-		tess.setNormal(0, 0, -1);
-		tess.addVertexWithUV(xMin, yMax, zMax, uMin, vMin);
-		tess.addVertexWithUV(xMin, yMin, zMax, uMin, vMax);
-		tess.addVertexWithUV(xMax, yMin, zMax, uMax, vMax);
-		tess.addVertexWithUV(xMax, yMax, zMax, uMax, vMin);
+		buff.pos(xMin, yMax, zMax).tex(uMin, vMin).endVertex();
+		buff.pos(xMin, yMin, zMax).tex(uMin, vMax).endVertex();
+		buff.pos(xMax, yMin, zMax).tex(uMax, vMax).endVertex();
+		buff.pos(xMax, yMax, zMax).tex(uMax, vMin).endVertex();
 	}
-		
-	public static void renderEastFaceWithUV(Tessellator tess, double xMax, double yMin, double zMin, double yMax, double zMax, double uMin, double uMax, double vMin, double vMax) {
+
+	public static void renderEastFaceWithUV(BufferBuilder buff, double xMax, double yMin, double zMin, double yMax, double zMax, double uMin, double uMax, double vMin, double vMax) {
 		//east
-		tess.setNormal(1, 0, 0);
-		tess.addVertexWithUV(xMax, yMax, zMin, uMin, vMin);
-		tess.addVertexWithUV(xMax, yMax, zMax, uMax, vMin);
-		tess.addVertexWithUV(xMax, yMin, zMax, uMax, vMax);
-		tess.addVertexWithUV(xMax, yMin, zMin, uMin, vMax);
+		buff.pos(xMax, yMax, zMin).tex(uMin, vMin).endVertex();
+		buff.pos(xMax, yMax, zMax).tex(uMax, vMin).endVertex();
+		buff.pos(xMax, yMin, zMax).tex(uMax, vMax).endVertex();
+		buff.pos(xMax, yMin, zMin).tex(uMin, vMax).endVertex();
 	}
-	
-	
-	public static void renderWestFaceWithUV(Tessellator tess, double xMin, double yMin, double zMin, double yMax, double zMax, double uMin, double uMax, double vMin, double vMax) {
+
+
+	public static void renderWestFaceWithUV(BufferBuilder buff, double xMin, double yMin, double zMin, double yMax, double zMax, double uMin, double uMax, double vMin, double vMax) {
 		//west
-		tess.setNormal(-1, 0, 0);
-		tess.addVertexWithUV(xMin, yMin, zMin, uMin, vMax);
-		tess.addVertexWithUV(xMin, yMin, zMax, uMax, vMax);
-		tess.addVertexWithUV(xMin, yMax, zMax, uMax, vMin);
-		tess.addVertexWithUV(xMin, yMax, zMin, uMin, vMin);
+		buff.pos(xMin, yMin, zMin).tex(uMin, vMax).endVertex();
+		buff.pos(xMin, yMin, zMax).tex(uMax, vMax).endVertex();
+		buff.pos(xMin, yMax, zMax).tex(uMax, vMin).endVertex();
+		buff.pos(xMin, yMax, zMin).tex(uMin, vMin).endVertex();
 	}
-	
-	public static void renderCubeWithUV(Tessellator tess, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax, double uMin, double uMax, double vMin, double vMax) {
-		
-		
-		renderTopFaceWithUV(tess, yMax, xMin, zMin, xMax, zMax, uMin, uMax,vMin, vMax);
-		renderNorthFaceWithUV(tess, zMin, xMin, yMin, xMax, yMax, uMin, uMax, vMin, vMax);
-		renderSouthFaceWithUV(tess, zMax, xMin, yMin, xMax, yMax, uMin, uMax, vMin, vMax);
-		renderEastFaceWithUV(tess, xMax, yMin, zMin, yMax, zMax, uMin, uMax, vMin, vMax);
-		renderWestFaceWithUV(tess, xMin, yMin, zMin, yMax, zMax, uMin, uMax, vMin, vMax);
-		renderBottomFaceWithUV(tess, yMin, xMin, zMin, xMax, zMax, uMin, uMax, vMin, vMax);
+
+	public static void renderCubeWithUV(BufferBuilder buff, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax, double uMin, double uMax, double vMin, double vMax) {
+
+
+		renderTopFaceWithUV(buff, yMax, xMin, zMin, xMax, zMax, uMin, uMax,vMin, vMax);
+		renderNorthFaceWithUV(buff, zMin, xMin, yMin, xMax, yMax, uMin, uMax, vMin, vMax);
+		renderSouthFaceWithUV(buff, zMax, xMin, yMin, xMax, yMax, uMin, uMax, vMin, vMax);
+		renderEastFaceWithUV(buff, xMax, yMin, zMin, yMax, zMax, uMin, uMax, vMin, vMax);
+		renderWestFaceWithUV(buff, xMin, yMin, zMin, yMax, zMax, uMin, uMax, vMin, vMax);
+		renderBottomFaceWithUV(buff, yMin, xMin, zMin, xMax, zMax, uMin, uMax, vMin, vMax);
+	}
+
+	public static void renderCube(BufferBuilder buff, double xMin, double yMin, double zMin, double xMax, double yMax, double zMax) {
+
+
+		renderTopFace(buff, yMax, xMin, zMin, xMax, zMax);
+		renderNorthFace(buff, zMin, xMin, yMin, xMax, yMax);
+		renderSouthFace(buff, zMax, xMin, yMin, xMax, yMax);
+		renderEastFace(buff, xMax, yMin, zMin, yMax, zMax);
+		renderWestFace(buff, xMin, yMin, zMin, yMax, zMax);
+		renderBottomFace(buff, yMin, xMin, zMin, xMax, zMax);
+	}
+
+	public static void renderItem(TileEntity tile, @Nonnull ItemStack itemstack, RenderItem dummyItem)
+	{
+		if (!itemstack.isEmpty())
+		{
+			EntityItem entityitem = new EntityItem(tile.getWorld(), 0.0D, 0.0D, 0.0D, itemstack);
+			Item item = entityitem.getItem().getItem();
+			entityitem.getItem().setCount(1);
+			entityitem.hoverStart = 0.0F;
+			GlStateManager.disableLighting();
+
+
+
+			GlStateManager.scale(0.5F, 0.5F, 0.5F);
+
+			if (!dummyItem.shouldRenderItemIn3D(entityitem.getItem()))
+			{
+				GlStateManager.rotate(180.0F, 0.0F, 1.0F, 0.0F);
+			}
+
+			GlStateManager.pushAttrib();
+			net.minecraft.client.renderer.RenderHelper.enableStandardItemLighting();
+			dummyItem.renderItem(entityitem.getItem(), ItemCameraTransforms.TransformType.FIXED);
+			net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
+			GlStateManager.popAttrib();
+
+
+
+			GlStateManager.enableLighting();
+		}
+	}
+
+	public static void renderItem(TileEntity tile, EntityItem entityitem, RenderItem dummyItem)
+	{
+		GlStateManager.disableLighting();
+		GlStateManager.scale(0.5F, 0.5F, 0.5F);
+
+		if (!dummyItem.shouldRenderItemIn3D(entityitem.getItem()))
+		{
+			GlStateManager.rotate(180.0F, 0.0F, 1.0F, 0.0F);
+		}
+
+		GlStateManager.pushAttrib();
+		net.minecraft.client.renderer.RenderHelper.enableStandardItemLighting();
+		dummyItem.renderItem(entityitem.getItem(), ItemCameraTransforms.TransformType.FIXED);
+		net.minecraft.client.renderer.RenderHelper.disableStandardItemLighting();
+		GlStateManager.popAttrib();
+
+
+
+		GlStateManager.enableLighting();
+
 	}
 }

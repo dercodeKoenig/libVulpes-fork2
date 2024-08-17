@@ -1,46 +1,50 @@
 package zmaster587.libVulpes.tile.multiblock;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import io.netty.buffer.ByteBuf;
-import cpw.mods.fml.relauncher.Side;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.audio.SoundCategory;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.ITickable;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.SoundEvent;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import zmaster587.libVulpes.Configuration;
 import zmaster587.libVulpes.LibVulpes;
+import zmaster587.libVulpes.api.ITimeModifier;
 import zmaster587.libVulpes.api.IToggleableMachine;
 import zmaster587.libVulpes.api.IUniversalEnergy;
 import zmaster587.libVulpes.block.BlockMeta;
+import zmaster587.libVulpes.block.BlockTile;
 import zmaster587.libVulpes.client.RepeatingSound;
-import zmaster587.libVulpes.inventory.modules.IModularInventory;
-import zmaster587.libVulpes.inventory.modules.IProgressBar;
-import zmaster587.libVulpes.inventory.modules.IToggleButton;
-import zmaster587.libVulpes.inventory.modules.ModuleBase;
-import zmaster587.libVulpes.inventory.modules.ModulePower;
-import zmaster587.libVulpes.inventory.modules.ModuleToggleSwitch;
+import zmaster587.libVulpes.inventory.modules.*;
 import zmaster587.libVulpes.network.PacketHandler;
 import zmaster587.libVulpes.network.PacketMachine;
 import zmaster587.libVulpes.tile.multiblock.TileMultiblockMachine.NetworkPackets;
 import zmaster587.libVulpes.util.INetworkMachine;
 import zmaster587.libVulpes.util.MultiBattery;
+import zmaster587.libVulpes.util.ZUtils;
 
-public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMachine, IModularInventory, IProgressBar, IToggleButton, IToggleableMachine {
+import javax.annotation.Nullable;
+import java.util.LinkedList;
+import java.util.List;
+
+public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMachine, IModularInventory, IProgressBar, IToggleButton, ITickable, IToggleableMachine {
 
 	protected MultiBattery batteries = new MultiBattery();
 
+	private float timeMultiplier;
 	protected int completionTime, currentTime;
 	protected int powerPerTick;
 	protected boolean enabled;
-	private ModuleToggleSwitch toggleSwitch;
+	protected ModuleToggleSwitch toggleSwitch;
 	//On server determines change in power state, on client determines last power state on server
-	boolean hadPowerLastTick = true;
-	
-	Object sound;
+	public boolean hadPowerLastTick;
+
+	Object soundToPlay;
 
 	public TileMultiPowerConsumer() {
 		super();
@@ -48,6 +52,7 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 		completionTime = -1;
 		currentTime = -1;
 		hadPowerLastTick = true;
+		timeMultiplier = 1;
 		toggleSwitch = new ModuleToggleSwitch(160, 5, 0, "", this,  zmaster587.libVulpes.inventory.TextureResources.buttonToggleImage, 11, 26, getMachineEnabled());
 	}
 
@@ -56,6 +61,11 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 		return batteries;
 	}
 
+	public float getPowerMultiplier() {
+		return Configuration.powerMult;
+	}
+
+	
 	@Override
 	public int getProgress(int id) {
 		return currentTime;
@@ -82,13 +92,7 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 		return completionTime > 0 ? currentTime/(float)completionTime : 0f;
 	}
 
-	@Override
-	public boolean canUpdate() {
-		return true;
-	}
-
-
-	public ResourceLocation getSound() {
+	public SoundEvent getSound() {
 		return null;
 	}
 
@@ -96,64 +100,99 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 		return 1;
 	}
 
-	@Override
-	public void updateEntity() {
-		super.updateEntity();
+	/**
+	 * 
+	 * @param state
+	 * @param tile can be null
+	 * @return
+	 */
+	public float getTimeMultiplierForBlock(IBlockState state, @Nullable TileEntity tile) {
 
-		//Freaky jenky crap to make sure the multiblock loads on chunkload etc
+		ItemStack droppedItem = new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state));
+
+		//Check for motors & such
+		if(state.getBlock() instanceof ITimeModifier)
+			return ((ITimeModifier)state.getBlock()).getTimeMult();
+		//Check coils, but with compat so people can add IE coils if wanted
+		else if(ZUtils.isItemInOreDict(droppedItem, "coilGold") || ZUtils.isItemInOreDict(droppedItem, "coilElectrum"))
+			return 0.9f;
+		else if(ZUtils.isItemInOreDict(droppedItem, "coilAluminum") || ZUtils.isItemInOreDict(droppedItem, "coilHighVoltage"))
+			return 0.8f;
+		else if(ZUtils.isItemInOreDict(droppedItem, "coilTitanium"))
+			return 0.75f;
+		else if(ZUtils.isItemInOreDict(droppedItem, "coilIridium"))
+			return 0.5f;
+		//Everything else is default
+		return 1f;
+	}
+
+	public float getTimeMultiplier() {
+		return timeMultiplier;
+	}
+
+	@Override
+	protected void replaceStandardBlock(BlockPos newPos, IBlockState state,
+			TileEntity tile) {
+		super.replaceStandardBlock(newPos, state, tile);
+		timeMultiplier *= getTimeMultiplierForBlock(state, tile);
+	}
+	
+	@Override
+	public void update() {
+
+		//Freaky janky crap to make sure the multiblock loads on chunkload etc
 		if(timeAlive == 0) {
-			if(!worldObj.isRemote) {
+			if(!world.isRemote) {
 				if(isComplete())
-					canRender = completeStructure = completeStructure();
-				onCreated();
+					canRender = completeStructure = completeStructure(world.getBlockState(pos));
 			}
 			else {
-				ResourceLocation str = getSound();
-				if(str != null)
-					playMachineSound(getSound());
+				SoundEvent str;
+				if((str = getSound()) != null) {
+					playMachineSound(str);
+				}
 			}
 
 			timeAlive = 0x1;
 		}
 
-		if(!worldObj.isRemote && worldObj.getTotalWorldTime() % 1000L == 0 && !isComplete()) {
-			attemptCompleteStructure();
+		if(!world.isRemote && world.getTotalWorldTime() % 1000L == 0 && !isComplete()) {
+			attemptCompleteStructure(world.getBlockState(pos));
 			markDirty();
-			worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+			world.notifyBlockUpdate(pos, world.getBlockState(pos),  world.getBlockState(pos), 3);
 		}
 
 		if(isRunning()) {
-			if(hasEnergy(requiredPowerPerTick()) || (worldObj.isRemote && hadPowerLastTick)) {
+			if((!world.isRemote && hasEnergy(requiredPowerPerTick())) || (world.isRemote && hadPowerLastTick)) {
 
 				onRunningPoweredTick();
 
 				//If server then check to see if we need to update the client, use power and process output if applicable
-				if(!worldObj.isRemote) {
+				if(!world.isRemote) {
 
 					if(!hadPowerLastTick) {
 						hadPowerLastTick = true;
 						markDirty();
-						worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+						PacketHandler.sendToNearby(new PacketMachine(this, (byte)NetworkPackets.POWERERROR.ordinal()), this.world.provider.getDimension(), this.pos.getX(), this.pos.getY(), this.pos.getZ(), 256.0);
+						world.notifyBlockUpdate(pos, world.getBlockState(pos),  world.getBlockState(pos), 3);
 					}
 
-					useEnergy(usedPowerPerTick());
 				}
 			}
-			else if(!worldObj.isRemote && hadPowerLastTick) { //If server and out of power check to see if client needs update
+			else if(!world.isRemote && hadPowerLastTick) { //If server and out of power check to see if client needs update
 				hadPowerLastTick = false;
 				markDirty();
-				worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+				PacketHandler.sendToNearby(new PacketMachine(this, (byte)NetworkPackets.POWERERROR.ordinal()), this.world.provider.getDimension(), this.pos.getX(), this.pos.getY(), this.pos.getZ(), 256.0);
+				world.notifyBlockUpdate(pos, world.getBlockState(pos),  world.getBlockState(pos), 3);
 			}
 		}
 	}
-
-	protected void onCreated() {};
 
 	/**
 	 * @return amount of power to allow the machine to run this tick
 	 */
 	protected int requiredPowerPerTick() {
-		return powerPerTick;
+		return  (int) Math.max(powerPerTick*getPowerMultiplier(),1);
 	}
 
 	/**
@@ -164,19 +203,40 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 	}
 
 	protected void onRunningPoweredTick() {
+
+		if(!world.isRemote)
+			useEnergy(powerPerTick);
 		//Increment for both client and server
 		currentTime++;
+
+		/*
+		SoundEvent str;
+		if(world.isRemote && (str = getSound()) != null && world.getTotalWorldTime() % getSoundDuration() == 0) {
+			playMachineSound(str);
+		}
+		 */
 
 		if(currentTime == completionTime)
 			processComplete();
 	}
 
-	protected void playMachineSound(ResourceLocation str) {
-		LibVulpes.proxy.playSound(new RepeatingSound(str, this));
+	protected void playMachineSound(SoundEvent str) {
+		//Screw you too
+
+		if(soundToPlay == null && world.isRemote) {
+			soundToPlay = new RepeatingSound(str, SoundCategory.BLOCKS, this);
+		}
+
+		LibVulpes.proxy.playSound(soundToPlay);
 	}
 
 	public void setMachineEnabled(boolean enabled) {
 		this.enabled = enabled;
+		if(!world.isRemote) {
+			this.markDirty();
+			world.notifyBlockUpdate(pos, world.getBlockState(pos),  world.getBlockState(pos), 3);
+		}
+
 	}
 
 	public boolean getMachineEnabled() {
@@ -190,18 +250,18 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 
 	/**
 	 * @param world world
-	 * @param destroyedX x coord of destroyed block
-	 * @param destroyedY y coord of destroyed block
-	 * @param destroyedZ z coord of destroyed block
+	 * @param destroyedPos coords of destroyed block
 	 * @param blockBroken set true if the block is being broken, otherwise some other means is being used to disassemble the machine
 	 */
-	public void deconstructMultiBlock(World world, int destroyedX, int destroyedY, int destroyedZ, boolean blockBroken) {
+	@Override
+	public void deconstructMultiBlock(World world, BlockPos destroyedPos, boolean blockBroken, IBlockState state) {
 		resetCache();
 		completionTime = 0;
 		currentTime = 0;
 		enabled = false;
+		timeMultiplier = 1f;
 
-		super.deconstructMultiBlock(world, destroyedX, destroyedY, destroyedZ, blockBroken);
+		super.deconstructMultiBlock(world, destroyedPos, blockBroken, state);
 	}
 
 	protected void processComplete() {
@@ -209,7 +269,7 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 		currentTime = 0;
 
 		this.markDirty();
-		worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+		world.notifyBlockUpdate(pos, world.getBlockState(pos),  world.getBlockState(pos), 3);
 	}
 
 	/**
@@ -225,18 +285,7 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 	}
 
 	public boolean hasEnergy(int amt) {
-		return batteries.getEnergyStored() >= amt;
-	}
-
-	public void setMachineRunning(boolean running) {
-		if(running && this.getBlockMetadata() < 8) {
-			this.blockMetadata = getBlockMetadata() | 8;
-			worldObj.setBlockMetadataWithNotify(xCoord, yCoord, zCoord, this.blockMetadata, 2);
-		}
-		else if(!running && this.blockMetadata >= 8) {
-			this.blockMetadata = getBlockMetadata() & 7;
-			worldObj.setBlockMetadataWithNotify(xCoord, yCoord, zCoord, this.blockMetadata, 2); //Turn off machine
-		}
+		return batteries.getUniversalEnergyStored() >= amt;
 	}
 
 	@Override
@@ -244,7 +293,7 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 		super.integrateTile(tile);
 
 		for(BlockMeta block : TileMultiBlock.getMapping('P')) {
-			if(block.getBlock() == worldObj.getBlock(tile.xCoord, tile.yCoord, tile.zCoord))
+			if(block.getBlock() == world.getBlockState(tile.getPos()).getBlock())
 				batteries.addBattery((IUniversalEnergy) tile);
 		}
 	}
@@ -256,6 +305,9 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 		nbt.setInteger("currentTime", this.currentTime);
 		nbt.setInteger("powerPerTick", this.powerPerTick);
 		nbt.setBoolean("enabled", enabled);
+
+		if(timeMultiplier != 1)
+			nbt.setFloat("timeMult", timeMultiplier);
 	}
 
 	@Override
@@ -265,7 +317,13 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 		currentTime = nbt.getInteger("currentTime");
 		powerPerTick = nbt.getInteger("powerPerTick");
 		enabled = nbt.getBoolean("enabled");
-		toggleSwitch.setToggleState(enabled);
+
+		if(nbt.hasKey("timeMult"))
+			timeMultiplier = nbt.getFloat("timeMult");
+
+		if(world != null && world.isRemote && isRunning()) {
+			((BlockTile)getBlockType()).setBlockState(world,world.getBlockState(getPos()), getPos(),true);
+		}
 	}
 
 	@Override
@@ -301,17 +359,19 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 			toggleSwitch.setToggleState(getMachineEnabled());
 
 			//Last ditch effort to update the toggle switch when it's flipped
-			if(!worldObj.isRemote)
-				PacketHandler.sendToNearby(new PacketMachine(this, (byte)NetworkPackets.TOGGLE.ordinal()), worldObj.provider.dimensionId, xCoord, yCoord, zCoord, 64);
+			if(!world.isRemote)
+				PacketHandler.sendToNearby(new PacketMachine(this, (byte)NetworkPackets.TOGGLE.ordinal()), world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64);
 		}
 	}
 
 	@Override
 	public List<ModuleBase> getModules(int ID, EntityPlayer player) {
-		LinkedList<ModuleBase> modules = new LinkedList<ModuleBase>();
+		LinkedList<ModuleBase> modules = new LinkedList<>();
 		modules.add(new ModulePower(18, 20, getBatteries()));
 		modules.add(toggleSwitch = new ModuleToggleSwitch(160, 5, 0, "", this,  zmaster587.libVulpes.inventory.TextureResources.buttonToggleImage, 11, 26, getMachineEnabled()));
-
+		modules.add(new ModuleText(140, 40, String.format("Speed:\n%.2fx", 1/getTimeMultiplier()), 0x2d2d2d));
+		modules.add(new ModuleText(140, 60, String.format("Power:\n%.2fx", 1f), 0x2d2d2d));
+		
 		return modules;
 	}
 

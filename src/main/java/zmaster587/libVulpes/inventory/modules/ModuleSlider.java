@@ -1,9 +1,8 @@
 package zmaster587.libVulpes.inventory.modules;
 
+import net.minecraft.util.math.MathHelper;
 import zmaster587.libVulpes.client.util.ProgressBarImage;
 import zmaster587.libVulpes.inventory.GuiModular;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.util.MathHelper;
 
 public class ModuleSlider extends ModuleProgress {
 
@@ -29,10 +28,10 @@ public class ModuleSlider extends ModuleProgress {
 			if(localX > 0 && localX < progressBar.getBackWidth() - progressBar.getInsetX() && localY > 0 && localY < progressBar.getBackHeight() - progressBar.getInsetY()) {
 
 				float percent;
-				if(progressBar.getDirection().offsetX != 0) { // horizontal
-					percent = MathHelper.clamp_float((localX  + progressBar.getInsetX())/ ((float)(progressBar.getBackWidth() - 2*progressBar.getInsetX())),0f,1f);
+				if(progressBar.getDirection().getFrontOffsetX() != 0) { // horizontal
+					percent = MathHelper.clamp((localX  + progressBar.getInsetX())/ ((float)(progressBar.getBackWidth() - 2*progressBar.getInsetX())),0f,1f);
 				}
-				else if(progressBar.getDirection().offsetY == 1)
+				else if(progressBar.getDirection().getFrontOffsetY() == 1)
 					percent = 1 - (localY / (float)(progressBar.getBackHeight() - progressBar.getInsetY()));
 				else
 					percent = localY / (float)(progressBar.getBackHeight() + progressBar.getInsetY());

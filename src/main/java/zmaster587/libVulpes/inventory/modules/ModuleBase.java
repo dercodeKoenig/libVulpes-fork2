@@ -1,32 +1,34 @@
 package zmaster587.libVulpes.inventory.modules;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
-
-import zmaster587.libVulpes.LibVulpes;
-import zmaster587.libVulpes.gui.CommonResources;
-import zmaster587.libVulpes.inventory.GuiModular;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.inventory.Container;
-import net.minecraft.inventory.ICrafting;
+import net.minecraft.inventory.IContainerListener;
 import net.minecraft.inventory.Slot;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
+import zmaster587.libVulpes.LibVulpes;
+import zmaster587.libVulpes.gui.CommonResources;
+import zmaster587.libVulpes.inventory.GuiModular;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public abstract class ModuleBase {
 
 	//Gui render offsets
 	public int offsetX;
 	public int offsetY;
+	protected int sizeX;
+	protected int sizeY;
 	//List of slots contained by this module
 	protected List<Slot> slotList;
 	//Because each player has it's own instance of the container, in order to send changes to all clients we need to make sure we're running the same tick when calling "isUpdateRequired"
@@ -40,13 +42,21 @@ public abstract class ModuleBase {
 	protected ModuleBase(int offsetX, int offsetY) {
 		this.offsetX = offsetX;
 		this.offsetY = offsetY;
-		slotList = new LinkedList<Slot>();
+		slotList = new LinkedList<>();
 		enabled = true;
 		visible = true;
 	}
 
 	protected long getCurrentTime() {
 		return LibVulpes.time;
+	}
+	
+	public int getSizeX() {
+		return sizeX;
+	}
+	
+	public int getSizeY() {
+		return sizeY;
 	}
 
 	/**
@@ -93,7 +103,6 @@ public abstract class ModuleBase {
 		
 	}
 	
-	
 	/**
 	 * @param chr char typed
 	 * @param t
@@ -137,7 +146,7 @@ public abstract class ModuleBase {
 	public void renderBackground(GuiContainer gui, int x, int y, int mouseX, int mouseY, FontRenderer font) {
 		gui.mc.getTextureManager().bindTexture(CommonResources.genericBackground);
 		for(Slot slot : slotList) {
-			gui.drawTexturedModalRect(x + slot.xDisplayPosition - 1, y + slot.yDisplayPosition - 1, 176, 0, 18, 18);
+			gui.drawTexturedModalRect(x + slot.xPos - 1, y + slot.yPos - 1, 176, 0, 18, 18);
 		}
 	}
 
@@ -154,13 +163,17 @@ public abstract class ModuleBase {
 	public void renderForeground(int guiOffsetX, int guiOffsetY, int mouseX, int mouseY, float zLevel, GuiContainer gui, FontRenderer font) {
 	}
 
+	@SideOnly(Side.CLIENT)
+	public void renderToolTip(int guiOffsetX, int guiOffsetY, int mouseX, int mouseY, float zLevel, GuiContainer gui, FontRenderer font) {
+	}
+
 	/**
 	 * @param container container called this method
 	 * @param crafter crafter to send the changes to
 	 * @param variableId container id to send
 	 * @param localId id of the object, scoped to this module
 	 */
-	public void sendChanges(Container container, ICrafting crafter, int variableId, int localId) {
+	public void sendChanges(Container container, IContainerListener crafter, int variableId, int localId) {
 
 	}
 
@@ -170,7 +183,7 @@ public abstract class ModuleBase {
 	 * @param crafter crafter to send the information to
 	 * @param variableId non-scoped id of the object to send
 	 */
-	public void sendInitialChanges(Container container, ICrafting crafter, int variableId) {
+	public void sendInitialChanges(Container container, IContainerListener crafter, int variableId) {
 		for(int i = 0; i < numberOfChangesToSend(); i++) {
 			sendChanges(container, crafter, variableId + i, i);
 		}
@@ -198,7 +211,7 @@ public abstract class ModuleBase {
 	 */
 	@SideOnly(Side.CLIENT)
 	public List<GuiButton> addButtons(int x, int y) {
-		return new LinkedList<GuiButton>();
+		return new LinkedList<>();
 	}
 
 	/**
@@ -214,7 +227,7 @@ public abstract class ModuleBase {
 	 * @return List of slots to add to this module
 	 */
 	public List<Slot> getSlots(Container container) {
-		return new LinkedList<Slot>();
+		return new LinkedList<>();
 	}
 
 	/**
@@ -226,21 +239,17 @@ public abstract class ModuleBase {
 	 * @param font fontrender
 	 */
 	@SideOnly(Side.CLIENT)
-	protected void drawTooltip(GuiContainer gui, List<String> textList ,int x, int y,float zLevel, FontRenderer font) {
+	protected void drawTooltip(GuiContainer gui, List<String> textList , int x, int y, float zLevel, FontRenderer font) {
 		GL11.glDisable(GL12.GL_RESCALE_NORMAL);
 		RenderHelper.disableStandardItemLighting();
 		GL11.glDisable(GL11.GL_LIGHTING);
 		GL11.glDisable(GL11.GL_DEPTH_TEST);
 		int k = 0;
-		Iterator iterator = textList.iterator();
 
-		while (iterator.hasNext())
-		{
-			String s = (String)iterator.next();
+		for (String s : textList) {
 			int l = font.getStringWidth(s);
 
-			if (l > k)
-			{
+			if (l > k) {
 				k = l;
 			}
 		}
@@ -266,7 +275,7 @@ public abstract class ModuleBase {
 
 		for (int i2 = 0; i2 < textList.size(); ++i2)
 		{
-			String s1 = (String)textList.get(i2);
+			String s1 = textList.get(i2);
 			font.drawStringWithShadow(s1, j2, k2, -1);
 
 			if (i2 == 0)
@@ -311,14 +320,14 @@ public abstract class ModuleBase {
 		GL11.glDisable(GL11.GL_ALPHA_TEST);
 		OpenGlHelper.glBlendFunc(770, 771, 1, 0);
 		GL11.glShadeModel(GL11.GL_SMOOTH);
-		Tessellator tessellator = Tessellator.instance;
-		tessellator.startDrawingQuads();
-		tessellator.setColorRGBA_F(f1, f2, f3, f);
-		tessellator.addVertex((double)x2, (double)y1, (double)zLevel);
-		tessellator.addVertex((double)x1, (double)y1, (double)zLevel);
-		tessellator.setColorRGBA_F(f5, f6, f7, f4);
-		tessellator.addVertex((double)x1, (double)y2, (double)zLevel);
-		tessellator.addVertex((double)x2, (double)y2, (double)zLevel);
+		Tessellator tessellator = Tessellator.getInstance();
+		BufferBuilder vertex = tessellator.getBuffer();
+		vertex.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
+		
+		vertex.pos(x2, y1, zLevel).color(f1, f2, f3, f).endVertex();
+		vertex.pos(x1, y1, zLevel).color(f1, f2, f3, f).endVertex();
+		vertex.pos(x1, y2, zLevel).color(f5, f6, f7, f4).endVertex();
+		vertex.pos(x2, y2, zLevel).color(f5, f6, f7, f4).endVertex();
 		tessellator.draw();
 		GL11.glShadeModel(GL11.GL_FLAT);
 		GL11.glDisable(GL11.GL_BLEND);

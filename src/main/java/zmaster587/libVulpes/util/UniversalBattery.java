@@ -1,7 +1,6 @@
 package zmaster587.libVulpes.util;
 
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.common.util.ForgeDirection;
 import zmaster587.libVulpes.api.IUniversalEnergy;
 
 public class UniversalBattery implements IUniversalEnergy {
@@ -52,7 +51,7 @@ public class UniversalBattery implements IUniversalEnergy {
 	}
 	
 	@Override
-	public int getEnergyStored() {
+	public int getUniversalEnergyStored() {
 		return energy;
 	}
 
@@ -81,7 +80,13 @@ public class UniversalBattery implements IUniversalEnergy {
 		this.maxEnergy = nbt.getInteger("maxEnergy");
 	}
 
-	public int receiveEnergy(int maxReceive, boolean simulate) {
-		return acceptEnergy(maxReceive, simulate);
+	@Override
+	public boolean canReceive() {
+		return true;
+	}
+
+	@Override
+	public boolean canExtract() {
+		return true;
 	}
 }

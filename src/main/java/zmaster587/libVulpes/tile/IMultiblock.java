@@ -1,16 +1,17 @@
 package zmaster587.libVulpes.tile;
 
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
 
 public interface IMultiblock {
 	
-	public boolean hasMaster();
+	boolean hasMaster();
 	
-	public TileEntity getMasterBlock();
+	TileEntity getMasterBlock();
 	
-	public void setComplete(int x, int y, int z);
+	void setComplete(BlockPos pos);
 	
-	public void setIncomplete();
+	void setIncomplete();
 	
-	public void setMasterBlock(int x, int y, int z);
+	void setMasterBlock(BlockPos pos);
 }

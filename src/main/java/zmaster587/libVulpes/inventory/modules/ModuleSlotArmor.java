@@ -1,18 +1,13 @@
 package zmaster587.libVulpes.inventory.modules;
 
-import java.util.List;
-
-import zmaster587.libVulpes.inventory.ContainerModular;
-import zmaster587.libVulpes.inventory.slot.SlotArmor;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
-import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Slot;
-import net.minecraft.item.ItemArmor;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.IIcon;
+import net.minecraftforge.items.SlotItemHandler;
+import net.minecraftforge.items.wrapper.PlayerArmorInvWrapper;
+import zmaster587.libVulpes.inventory.ContainerModular;
+
+import java.util.List;
 
 public class ModuleSlotArmor extends ModuleBase {
 
@@ -23,8 +18,8 @@ public class ModuleSlotArmor extends ModuleBase {
 	public ModuleSlotArmor(int offsetX, int offsetY, EntityPlayer player) {
 		super(offsetX, offsetY);
 		this.player = player;
-		startSlot = 36;
-		endSlot = 40;
+		startSlot = 0;
+		endSlot = 4;
 	}
 
 	public void setSlotBounds(int a, int b) {
@@ -51,7 +46,10 @@ public class ModuleSlotArmor extends ModuleBase {
 
 			Slot slot;
 			final int k = (endSlot - startSlot) - i - 1;
-			slot = new SlotArmor(player.inventory, k + startSlot, offsetX + 18 * (i / 9), offsetY + 18*(i%9), player, 3- k);
+			
+			PlayerArmorInvWrapper handler = new PlayerArmorInvWrapper(player.inventory);
+			
+			slot = new SlotItemHandler(handler, k + startSlot, offsetX + 18 * (i / 9), offsetY + 18*(i%9));
 
 
 			slotList.add(slot);

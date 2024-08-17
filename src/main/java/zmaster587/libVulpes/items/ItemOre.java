@@ -1,28 +1,38 @@
 package zmaster587.libVulpes.items;
 
-import java.util.Locale;
-
+import net.minecraft.block.Block;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.text.translation.I18n;
 import zmaster587.libVulpes.block.BlockOre;
 import zmaster587.libVulpes.block.INamedMetaBlock;
-import net.minecraft.block.Block;
-import net.minecraft.item.ItemBlockWithMetadata;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.StatCollector;
 
-public class ItemOre extends ItemBlockWithMetadata {
+import javax.annotation.Nonnull;
+import java.util.Locale;
 
-	public ItemOre(Block p_i45326_1_) {
-		super(p_i45326_1_, p_i45326_1_);
+public class ItemOre extends ItemBlock {
+
+	public ItemOre(Block block) {
+		super(block);
+		this.setHasSubtypes(true);
 	}
 
 	@Override
-	public String getUnlocalizedName(ItemStack stack) {
-		return ((INamedMetaBlock)this.field_150939_a).getUnlocalizedName(stack.getItemDamage());
+	public String getUnlocalizedName(@Nonnull ItemStack stack) {
+		return ((INamedMetaBlock)this.getBlock()).getUnlocalizedName(stack.getItemDamage());
 	}
 	
 	@Override
-    public String getItemStackDisplayName(ItemStack stack)
+	public int getMetadata(int damage) {
+		return damage;
+	}
+	
+	@Override
+    public String getItemStackDisplayName(@Nonnull ItemStack stack)
     {
-        return ("" + StatCollector.translateToLocal(this.getUnlocalizedNameInefficiently(stack) + ".name") + " " + StatCollector.translateToLocal("type." + ((BlockOre)this.field_150939_a).getProduct().name().toLowerCase(Locale.ENGLISH) + ".name")).trim();
+		String translate = "tile." + this.getUnlocalizedNameInefficiently(stack).substring(9) + "." + ((BlockOre)this.getBlock()).getProduct().name().toLowerCase(Locale.ENGLISH) + ".name";
+		if(I18n.canTranslate(translate))
+			return I18n.translateToLocal(translate);
+		return ("" + I18n.translateToLocal(this.getUnlocalizedNameInefficiently(stack) + ".name") + " " + I18n.translateToLocal("type." + ((BlockOre)this.getBlock()).getProduct().name().toLowerCase(Locale.ENGLISH) + ".name")).trim();
     }
 }

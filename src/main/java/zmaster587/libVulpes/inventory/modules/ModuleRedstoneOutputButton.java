@@ -2,21 +2,32 @@ package zmaster587.libVulpes.inventory.modules;
 
 import zmaster587.libVulpes.inventory.TextureResources;
 import zmaster587.libVulpes.util.ZUtils.RedstoneState;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public class ModuleRedstoneOutputButton extends ModuleButton {
 
 	RedstoneState state;
+	
+	String suppText;
 
 	public ModuleRedstoneOutputButton(int offsetX, int offsetY, int buttonId,
 			String text, IButtonInventory tile) {
 		super(offsetX, offsetY, buttonId, text, tile, TextureResources.buttonRedstoneActive, 24 ,24);
+		sizeX=24;
+		sizeY=24;
 		state = RedstoneState.ON;
+		suppText = "";
+	}
+	
+	public ModuleRedstoneOutputButton(int offsetX, int offsetY, int buttonId,
+			String text, IButtonInventory tile, String text2) {
+		this(offsetX, offsetY, buttonId,
+			text, tile);
+		suppText = text2;
 	}
 
 	public RedstoneState getState() {
@@ -40,15 +51,15 @@ public class ModuleRedstoneOutputButton extends ModuleButton {
 			switch(state) {
 			case ON:
 				button.setButtonTexture(TextureResources.buttonRedstoneActive);
-				tooltipText = "Redstone control normal";
+				tooltipText = suppText + "Redstone control normal";
 				break;
 			case OFF:
 				button.setButtonTexture(TextureResources.buttonRedstoneDisabled);
-				tooltipText = "Redstone control disabled";
+				tooltipText = suppText + "Redstone control disabled";
 				break;
 			case INVERTED:
 				button.setButtonTexture(TextureResources.buttonRedstoneInverted);
-				tooltipText = "Redstone control inverted";
+				tooltipText = suppText + "Redstone control inverted";
 			}
 
 		super.renderBackground(gui, x, y, mouseX, mouseY, font);

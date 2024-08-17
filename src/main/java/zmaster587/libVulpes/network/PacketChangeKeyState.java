@@ -1,9 +1,9 @@
 package zmaster587.libVulpes.network;
 
-import zmaster587.libVulpes.util.InputSyncHandler;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import zmaster587.libVulpes.util.InputSyncHandler;
 
 public class PacketChangeKeyState extends BasePacket {
 
@@ -15,7 +15,7 @@ public class PacketChangeKeyState extends BasePacket {
 		this.state = state;
 	}
 	
-	public PacketChangeKeyState() {};
+	public PacketChangeKeyState() {}
 	
 	@Override
 	public void write(ByteBuf out) {
@@ -25,7 +25,8 @@ public class PacketChangeKeyState extends BasePacket {
 
 	@Override
 	public void readClient(ByteBuf in) {
-		
+		in.readInt();
+		in.readBoolean();
 	}
 
 	@Override

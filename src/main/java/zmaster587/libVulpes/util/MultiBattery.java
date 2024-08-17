@@ -1,15 +1,14 @@
 package zmaster587.libVulpes.util;
 
-import java.util.LinkedList;
-
-import net.minecraftforge.common.util.ForgeDirection;
 import zmaster587.libVulpes.api.IUniversalEnergy;
+
+import java.util.LinkedList;
 
 public class MultiBattery implements IUniversalEnergy {
 
 	//Note: as of writing there should never be a need to save this
 	
-	protected LinkedList<IUniversalEnergy> batteries = new LinkedList<IUniversalEnergy>();
+	protected LinkedList<IUniversalEnergy> batteries = new LinkedList<>();
 	
 	public void addBattery(IUniversalEnergy battery) {
 		batteries.add(battery);
@@ -34,10 +33,10 @@ public class MultiBattery implements IUniversalEnergy {
 	}
 
 	@Override
-	public int getEnergyStored() {
+	public int getUniversalEnergyStored() {
 		int energyStored = 0;
 		for(IUniversalEnergy battery : batteries)
-			energyStored += battery.getEnergyStored();
+			energyStored += battery.getUniversalEnergyStored();
 
 		return energyStored;
 	}
@@ -70,7 +69,7 @@ public class MultiBattery implements IUniversalEnergy {
 
 	@Override
 	public void setEnergyStored(int amt) {
-		int difference = amt - getEnergyStored();
+		int difference = amt - getUniversalEnergyStored();
 		int amtAdded = 0;
 		
 		//Possible inf loop
@@ -89,6 +88,18 @@ public class MultiBattery implements IUniversalEnergy {
 					break;
 				amtAdded += recieved;
 			}
+	}
+
+	@Override
+	public boolean canReceive() {
+		// TODO Auto-generated method stub
+		return true;
+	}
+
+	@Override
+	public boolean canExtract() {
+		// TODO Auto-generated method stub
+		return true;
 	}
 
 }

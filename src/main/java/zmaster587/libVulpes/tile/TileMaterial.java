@@ -1,11 +1,10 @@
 package zmaster587.libVulpes.tile;
 
-import zmaster587.libVulpes.api.material.Material;
-import zmaster587.libVulpes.api.material.MaterialRegistry;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
-import net.minecraft.network.Packet;
-import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
+import net.minecraft.network.play.server.SPacketUpdateTileEntity;
+import zmaster587.libVulpes.api.material.Material;
+import zmaster587.libVulpes.api.material.MaterialRegistry;
 
 public class TileMaterial extends TilePointer {
 
@@ -29,24 +28,39 @@ public class TileMaterial extends TilePointer {
 	}
 
 	@Override
-	public Packet getDescriptionPacket() {
+	public SPacketUpdateTileEntity getUpdatePacket() {
 		NBTTagCompound nbt = new NBTTagCompound();
 
 		nbt.setString("material", materialType.getUnlocalizedName());
 
-		return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, worldObj.provider.dimensionId, nbt);
+		return new SPacketUpdateTileEntity(pos, world.provider.getDimension(), nbt);
 	}
 
 	@Override
-	public void onDataPacket(NetworkManager net, S35PacketUpdateTileEntity pkt) {
-		materialType = MaterialRegistry.getMaterialFromName(pkt.func_148857_g().getString("material"));
+	public NBTTagCompound getUpdateTag() {
+		NBTTagCompound nbt = super.getUpdateTag();
+		nbt.setString("material", materialType.getUnlocalizedName());
+		return nbt;
+	}
+	
+	@Override
+	public void handleUpdateTag(NBTTagCompound tag) {
+		super.handleUpdateTag(tag);
+		materialType = MaterialRegistry.getMaterialFromName(tag.getString("material"));
+	}
+	
+	@Override
+	public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity pkt) {
+		materialType = MaterialRegistry.getMaterialFromName(pkt.getNbtCompound().getString("material"));
 	}
 
 	@Override
-	public void writeToNBT(NBTTagCompound nbt) {
+	public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
 		super.writeToNBT(nbt);
 		if(materialType != null)
 			nbt.setString("material", materialType.getUnlocalizedName());
+		
+		return nbt;
 	}
 
 	@Override

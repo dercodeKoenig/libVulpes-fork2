@@ -6,7 +6,7 @@ public abstract class TileEntityItemFueledMachine extends TileEntityMachine {
 	protected int fuelTime, maxFuelTime;
 	
 	@Override
-	public void updateEntity() {
+	public void update() {
 		if(fuelTime > 0) {
 			fuelTime--;
 			if(fuelTime == 0) {
@@ -15,7 +15,7 @@ public abstract class TileEntityItemFueledMachine extends TileEntityMachine {
 				//Run update to check for more fuel
 				onInventoryUpdate();
 				if(fuelTime == 0)
-					setRunning(false, worldObj);
+					setRunning(false, world);
 					
 			}
 		}
@@ -32,11 +32,12 @@ public abstract class TileEntityItemFueledMachine extends TileEntityMachine {
 	public boolean isBurningFuel() { return fuelTime > 0; }
 	
 	@Override
-	public void writeToNBT(NBTTagCompound nbt) {
+	public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
 		super.writeToNBT(nbt);
 		
 		nbt.setInteger("fuelTime", fuelTime);
 		nbt.setInteger("maxFuelTime", maxFuelTime);
+		return nbt;
 	}
 	
 	@Override

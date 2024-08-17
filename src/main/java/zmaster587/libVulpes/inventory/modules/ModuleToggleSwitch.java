@@ -1,17 +1,17 @@
 package zmaster587.libVulpes.inventory.modules;
 
-import java.util.LinkedList;
-import java.util.List;
-
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import zmaster587.libVulpes.gui.GuiToggleButtonImage;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Container;
-import net.minecraft.inventory.ICrafting;
+import net.minecraft.inventory.IContainerListener;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import zmaster587.libVulpes.gui.GuiToggleButtonImage;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public class ModuleToggleSwitch extends ModuleButton {
 
@@ -28,19 +28,19 @@ public class ModuleToggleSwitch extends ModuleButton {
 		currentState = defaultState;
 	}
 	
-	public ModuleToggleSwitch(int offsetX, int offsetY, int buttonId, String text, IToggleButton tile, ResourceLocation buttonImages[], String tooltipText, boolean defaultState) {
+	public ModuleToggleSwitch(int offsetX, int offsetY, int buttonId, String text, IToggleButton tile, ResourceLocation[] buttonImages, String tooltipText, boolean defaultState) {
 		super(offsetX, offsetY, buttonId, text, tile, buttonImages, tooltipText);
 		this.tile = tile;
 		currentState = defaultState;
 	}
 
-	public ModuleToggleSwitch(int offsetX, int offsetY, int buttonId, String text, IToggleButton tile, ResourceLocation buttonImages[], int sizeX, int sizeY, boolean defaultState) {
+	public ModuleToggleSwitch(int offsetX, int offsetY, int buttonId, String text, IToggleButton tile, ResourceLocation[] buttonImages, int sizeX, int sizeY, boolean defaultState) {
 		super(offsetX, offsetY, buttonId, text, tile, buttonImages, sizeX, sizeY);
 		this.tile = tile;
 		currentState = defaultState;
 	}
 	
-	public ModuleToggleSwitch(int offsetX, int offsetY, int buttonId, String text, IToggleButton tile, ResourceLocation buttonImages[], String tooltipText, int sizeX, int sizeY, boolean defaultState) {
+	public ModuleToggleSwitch(int offsetX, int offsetY, int buttonId, String text, IToggleButton tile, ResourceLocation[] buttonImages, String tooltipText, int sizeX, int sizeY, boolean defaultState) {
 		super(offsetX, offsetY, buttonId, text, tile, buttonImages, tooltipText, sizeX, sizeY);
 		this.tile = tile;
 		currentState = defaultState;
@@ -54,7 +54,7 @@ public class ModuleToggleSwitch extends ModuleButton {
 	@SideOnly(Side.CLIENT)
 	public List<GuiButton> addButtons(int x, int y) {
 
-		List<GuiButton> list = new LinkedList<GuiButton>();
+		List<GuiButton> list = new LinkedList<>();
 
 		enabledButton = new GuiToggleButtonImage(0, x + offsetX, y + offsetY, sizeX, sizeY, buttonImages);
 		enabledButton.setState(currentState);
@@ -82,7 +82,6 @@ public class ModuleToggleSwitch extends ModuleButton {
 	
 	@Override
 	public boolean needsUpdate(int localId) {
-		// TODO Auto-generated method stub
 		return prevState != currentState;
 	}
 	
@@ -97,9 +96,9 @@ public class ModuleToggleSwitch extends ModuleButton {
 	}
 	
 	@Override
-	public void sendChanges(Container container, ICrafting crafter,
+	public void sendChanges(Container container, IContainerListener crafter,
 			int variableId, int localId) {
-		crafter.sendProgressBarUpdate(container, variableId, currentState ? 1 : 0);
+		crafter.sendWindowProperty(container, variableId, currentState ? 1 : 0);
 	}
 	
 	public boolean isButton(GuiButton button) {

@@ -1,48 +1,84 @@
 package zmaster587.libVulpes.tile.multiblock.hatch;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.Packet;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidContainerRegistry;
+import net.minecraft.util.EnumFacing;
+import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
-import net.minecraftforge.fluids.FluidTankInfo;
-import net.minecraftforge.fluids.IFluidContainerItem;
-import net.minecraftforge.fluids.IFluidHandler;
+import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
+import net.minecraftforge.fluids.capability.IFluidTankProperties;
+import net.minecraftforge.items.CapabilityItemHandler;
+import zmaster587.libVulpes.cap.FluidCapability;
 import zmaster587.libVulpes.gui.CommonResources;
-import zmaster587.libVulpes.inventory.modules.IModularInventory;
-import zmaster587.libVulpes.inventory.modules.ModuleBase;
-import zmaster587.libVulpes.inventory.modules.ModuleImage;
-import zmaster587.libVulpes.inventory.modules.ModuleLiquidIndicator;
-import zmaster587.libVulpes.inventory.modules.ModuleSlotArray;
+import zmaster587.libVulpes.interfaces.IInventoryUpdateCallback;
+import zmaster587.libVulpes.inventory.modules.*;
 import zmaster587.libVulpes.tile.TilePointer;
 import zmaster587.libVulpes.tile.multiblock.TileMultiBlock;
 import zmaster587.libVulpes.util.EmbeddedInventory;
+import zmaster587.libVulpes.util.FluidUtils;
+import zmaster587.libVulpes.util.IFluidHandlerInternal;
 import zmaster587.libVulpes.util.IconResource;
 
-public class TileFluidHatch extends TilePointer implements IFluidHandler, IModularInventory, ISidedInventory {
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+
+public class TileFluidHatch extends TilePointer implements IFluidHandlerInternal, IModularInventory, ISidedInventory, IInventoryUpdateCallback {
 
 	protected FluidTank fluidTank;
 	private EmbeddedInventory inventory;
 	private boolean outputOnly;
-	
+
+
 	public TileFluidHatch() {
 		fluidTank = new FluidTank(16000);
-		inventory = new EmbeddedInventory(2);
+		inventory = new EmbeddedInventory(2, this);
+		inventory.setCanInsertSlot(0, true);
+		inventory.setCanInsertSlot(1, false);
+		inventory.setCanExtractSlot(0, false);
+		inventory.setCanExtractSlot(1, true);
+
 	}
 	
 	public TileFluidHatch(int capacity) {
 		fluidTank = new FluidTank(capacity);
-		inventory = new EmbeddedInventory(2);
+		inventory = new EmbeddedInventory(2,this);
+		inventory.setCanInsertSlot(0, true);
+		inventory.setCanInsertSlot(1, false);
+		inventory.setCanExtractSlot(0, false);
+		inventory.setCanExtractSlot(1, true);
+	}
+	
+	@Override
+	public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
+		if(capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY || capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)
+			return true;
+		return super.hasCapability(capability, facing);
+	}
+	
+	@Override
+	public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
+		if(capability == CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY) {
+			return (T) new FluidCapability(this);
+		}
+		else if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
+			return (T) inventory;
+		}
+		
+		return super.getCapability(capability, facing);
+	}
+	
+	@Override
+	public NBTTagCompound serializeNBT() {
+		return new NBTTagCompound();
+	}
+	@Override
+	public void deserializeNBT(NBTTagCompound nbt) {
+		
 	}
 
 	public TileFluidHatch(boolean outputOnly) {
@@ -54,64 +90,75 @@ public class TileFluidHatch extends TilePointer implements IFluidHandler, IModul
 	public boolean isOutputOnly() {
 		return outputOnly;
 	}
+
+	public void setOutputOnly(boolean output) {outputOnly = output;}
 	
 	@Override
-	public int fill(ForgeDirection from, FluidStack resource, boolean doFill) {
-		if(doFill && this.hasMaster() && this.getMasterBlock() instanceof TileMultiBlock)
-			((TileMultiBlock)this.getMasterBlock()).onInventoryUpdated();
-		if(outputOnly && from != ForgeDirection.UNKNOWN)
+	public int fill(FluidStack resource, boolean doFill) {
+
+		if(outputOnly)
 			return 0;
-		
-		int fillAmt = fluidTank.fill(resource, doFill);
-		while(useBucket(0, getStackInSlot(0)));
-		
-		
-		return fillAmt;
+		world.notifyNeighborsOfStateChange(pos,this.getBlockType(), true);
+		return fillInternal(resource, doFill);
+
 	}
 
+	public FluidTank getFluidTank() {
+		return fluidTank;
+	}
 
 	
 	@Override
-	public FluidStack drain(ForgeDirection from, FluidStack resource,
-			boolean doDrain) {
+	public FluidStack drain(FluidStack resource, boolean doDrain) {
 
 		if(resource.isFluidEqual(fluidTank.getFluid())) {
 			FluidStack fluidStack = fluidTank.drain(resource.amount, doDrain);
 			while(useBucket(0, getStackInSlot(0)));
-			
-			
+
+			world.notifyNeighborsOfStateChange(pos,this.getBlockType(), true);
 			return fluidStack;
 		}
 		return null;
 	}
 
 	@Override
-	public FluidStack drain(ForgeDirection from, int maxDrain, boolean doDrain) {
+	public FluidStack drain(int maxDrain, boolean doDrain) {
 		return fluidTank.drain(maxDrain, doDrain);
 	}
-
 	@Override
-	public boolean canFill(ForgeDirection from, Fluid fluid) {
-		return outputOnly;
+	public FluidStack drainInternal(FluidStack maxDrain, boolean doDrain) {
+		return drain(maxDrain, doDrain);
 	}
 
 	@Override
-	public boolean canDrain(ForgeDirection from, Fluid fluid) {
-		return true;
+	public int fillInternal(FluidStack resource, boolean doFill) {
+		int fillAmt = fluidTank.fill(resource, doFill);
+		
+		if(doFill && fillAmt > 0 && this.hasMaster() && this.getMasterBlock() instanceof TileMultiBlock)
+			((TileMultiBlock)this.getMasterBlock()).onInventoryUpdated();
+		
+		
+		return fillAmt;
 	}
 
 	@Override
-	public FluidTankInfo[] getTankInfo(ForgeDirection from) {
-		return new FluidTankInfo[] { fluidTank.getInfo()};
+	public FluidStack drainInternal(int maxDrain, boolean doDrain) {
+		return drain(maxDrain, doDrain);
+	}
+	
+	
+	@Override
+	public IFluidTankProperties[] getTankProperties() {
+		return fluidTank.getTankProperties();
 	}
 
 	@Override
 	public List<ModuleBase> getModules(int ID, EntityPlayer player) {
-		List<ModuleBase> list = new ArrayList<ModuleBase>();
+		List<ModuleBase> list = new ArrayList<>();
 
 		list.add(new ModuleSlotArray(45, 18, this, 0, 1));
 		list.add(new ModuleSlotArray(45, 54, this, 1, 2));
-		if(worldObj.isRemote)
+		if(world.isRemote)
 			list.add(new ModuleImage(44, 35, new IconResource(194, 0, 18, 18, CommonResources.genericBackground)));
 		list.add(new ModuleLiquidIndicator(27, 18, this));
 
@@ -134,34 +181,29 @@ public class TileFluidHatch extends TilePointer implements IFluidHandler, IModul
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack getStackInSlot(int slot) {
 		return inventory.getStackInSlot(slot);
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack decrStackSize(int slot, int amt) {
 		return inventory.decrStackSize(slot, amt);
 	}
 
 	@Override
-	public ItemStack getStackInSlotOnClosing(int slot) {
-		return inventory.getStackInSlotOnClosing(slot);
-	}
-
-	@Override
-	public void setInventorySlotContents(int slot, ItemStack stack) {
+	public void setInventorySlotContents(int slot, @Nonnull ItemStack stack) {
 		inventory.setInventorySlotContents(slot, stack);
 		while(useBucket(0, getStackInSlot(0)));
+		
+		if(this.hasMaster() && this.getMasterBlock() instanceof TileMultiBlock)
+			((TileMultiBlock)this.getMasterBlock()).onInventoryUpdated();
 	}
-
+	
 	@Override
-	public String getInventoryName() {
-		return getModularInventoryName();
-	}
-
-	@Override
-	public boolean hasCustomInventoryName() {
-		return false;
+	public void onInventoryUpdated(int slot) {
+		setInventorySlotContents(slot, inventory.getStackInSlot(slot));
 	}
 
 	@Override
@@ -170,33 +212,24 @@ public class TileFluidHatch extends TilePointer implements IFluidHandler, IModul
 	}
 
 	@Override
-	public boolean isUseableByPlayer(EntityPlayer player) {
+	public boolean isUsableByPlayer(@Nullable EntityPlayer player) {
 		return true;
 	}
 
 	@Override
-	public void openInventory() {
-
-	}
-
-	@Override
-	public void closeInventory() {
-
-	}
-
-	@Override
-	public boolean isItemValidForSlot(int slot, ItemStack stack) {
+	public boolean isItemValidForSlot(int slot, @Nonnull ItemStack stack) {
 		return inventory.isItemValidForSlot(slot, stack);
 	}
 
 	@Override
-	public void writeToNBT(NBTTagCompound nbt) {
+	public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
 		super.writeToNBT(nbt);
 
 		nbt.setBoolean("outputOnly", outputOnly);
 		inventory.writeToNBT(nbt);
 		nbt.setInteger("capacity", fluidTank.getCapacity());
 		fluidTank.writeToNBT(nbt);
+		return nbt;
 	}
 
 	@Override
@@ -208,128 +241,77 @@ public class TileFluidHatch extends TilePointer implements IFluidHandler, IModul
 		fluidTank = new FluidTank(nbt.getInteger("capacity"));
 		fluidTank.readFromNBT(nbt);
 	}
+	
+	protected boolean useBucket( int slot, @Nonnull ItemStack stack) {
+		return FluidUtils.attemptDrainContainerIInv(inventory, fluidTank, stack, 0, 1);
+	}
 
-	//Yes i was lazy
-	//TODO: make better
-	protected boolean useBucket( int slot, ItemStack stack) {
+	@Override
+	public String getName() {
+		return getModularInventoryName();
+	}
 
-		//Fill tank from bucket
-		if(FluidContainerRegistry.isFilledContainer(stack)) {
-			if(!outputOnly && slot == 0 && fluidTank.getFluidAmount() + FluidContainerRegistry.getContainerCapacity(stack) <= fluidTank.getCapacity()) {
-				ItemStack emptyContainer = FluidContainerRegistry.drainFluidContainer(stack);
-
-				if(emptyContainer != null && getStackInSlot(1) == null || (emptyContainer.isItemEqual(getStackInSlot(1)) && getStackInSlot(1).stackSize < getStackInSlot(1).getMaxStackSize())) {
-					int amtFilled = fluidTank.fill(FluidContainerRegistry.getFluidForFilledItem(stack), true);
-
-					//Handle fluids not being equal
-					if(amtFilled == 0)
-						return false;
-					
-					if(getStackInSlot(1) == null)
-						inventory.setInventorySlotContents(1, emptyContainer);
-					else
-						getStackInSlot(1).stackSize++;
-					decrStackSize(0, 1);
-					return true;
-				}
-			}
-		}
-		//Empty tank into bucket
-		else if(FluidContainerRegistry.isContainer(stack)) {
-			if(slot == 0 && fluidTank.getFluidAmount() >= FluidContainerRegistry.BUCKET_VOLUME) {
-				ItemStack fullContainer = FluidContainerRegistry.fillFluidContainer(fluidTank.drain(FluidContainerRegistry.BUCKET_VOLUME, false), stack);
-
-
-				if(fullContainer != null && (getStackInSlot(1) == null || (fullContainer.isItemEqual(getStackInSlot(1)) && getStackInSlot(1).stackSize < getStackInSlot(1).getMaxStackSize())) ) {
-					fluidTank.drain(FluidContainerRegistry.BUCKET_VOLUME, true);
-
-					if(getStackInSlot(1) == null)
-						inventory.setInventorySlotContents(1, fullContainer);
-					else
-						getStackInSlot(1).stackSize++;
-					decrStackSize(0, 1);
-					return true;
-				}
-			}
-		}
-		//Empty tank into bucket
-		else if(stack != null && stack.getItem() instanceof IFluidContainerItem) {
-			IFluidContainerItem fluidItem = ((IFluidContainerItem)stack.getItem());
-			FluidStack fluidStack;
-			stack = stack.copy();
-			stack.stackSize = 1;
-			
-			//Drain the tank into the item
-			if(fluidTank.getFluid() != null && (fluidItem.getFluid(stack) == null || outputOnly)) {
-				int amt = fluidItem.fill(stack, fluidTank.getFluid(), true);
-				
-				
-				//If the container is full move it down and try again for a new one
-				if(amt != 0 && fluidItem.getCapacity(stack) == fluidItem.getFluid(stack).amount) {
-					
-					
-					if(getStackInSlot(1) == null) {
-						inventory.setInventorySlotContents(1, stack);
-					}
-					else if(ItemStack.areItemStackTagsEqual(getStackInSlot(1), stack) && getStackInSlot(1).getItem().equals(stack.getItem()) && getStackInSlot(1).getItemDamage() == stack.getItemDamage() && stack.getItem().getItemStackLimit(stack) < getStackInSlot(1).stackSize) {
-						getStackInSlot(1).stackSize++;
-
-					}
-					else
-						return false;
-					fluidTank.drain(amt, true);
-					decrStackSize(0, 1);
-
-					return true;
-				}
-				
-			}
-			else {
-				fluidStack = fluidItem.drain(stack, fluidTank.getCapacity() - fluidTank.getFluidAmount(), false);
-
-				int amountDrained = fluidTank.fill(fluidStack, false);
-				
-				//prevent bucket eating
-				if(amountDrained == 0)
-					return false;
-				
-				fluidItem.drain(stack, amountDrained, true);
-				if (fluidItem.getFluid(stack) == null || fluidItem.getFluid(stack).amount == 0) {
-					if(getStackInSlot(1) == null) {
-						inventory.setInventorySlotContents(1, stack);
-					}
-					else if(ItemStack.areItemStackTagsEqual(getStackInSlot(1), stack) && getStackInSlot(1).getItem().equals(stack.getItem()) && getStackInSlot(1).getItemDamage() == stack.getItemDamage() && stack.getItem().getItemStackLimit(stack) > getStackInSlot(1).stackSize) {
-						getStackInSlot(1).stackSize++;
-
-					}
-					else
-						return false;
-
-					decrStackSize(0, 1);
-					fluidTank.fill(fluidStack, true);
-					
-					return true;
-					
-				}
-			}
-		}
+	@Override
+	public boolean hasCustomName() {
 		return false;
 	}
 
 	@Override
-	public int[] getAccessibleSlotsFromSide(int p_94128_1_) {
+	@Nonnull
+	public ItemStack removeStackFromSlot(int index) {
+		return ItemStack.EMPTY;
+	}
+
+	@Override
+	public void openInventory(EntityPlayer player) {
+		
+	}
+	
+	@Override
+	public boolean isEmpty() {
+		return inventory.isEmpty();
+	}
+
+	@Override
+	public void closeInventory(EntityPlayer player) {
+		
+	}
+
+	@Override
+	public int getField(int id) {
+		return 0;
+	}
+
+	@Override
+	public void setField(int id, int value) {
+		
+	}
+
+	@Override
+	public int getFieldCount() {
+		return 0;
+	}
+
+	@Override
+	public void clear() {
+		
+	}
+
+	@Override
+	@Nonnull
+	public int[] getSlotsForFace(EnumFacing side) {
 		return new int[] {0,1};
 	}
 
 	@Override
-	public boolean canInsertItem(int index, ItemStack itemStackIn,
-			int dir) {
+	public boolean canInsertItem(int index, @Nonnull ItemStack itemStackIn,
+			EnumFacing direction) {
 		return index == 0 && isItemValidForSlot(index, itemStackIn);
 	}
 
 	@Override
-	public boolean canExtractItem(int index, ItemStack itemStackIn,
-			int dir) {
+	public boolean canExtractItem(int index, @Nonnull ItemStack stack,
+			EnumFacing direction) {
 		return index == 1;
 	}
 }

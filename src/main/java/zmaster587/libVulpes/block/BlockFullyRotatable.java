@@ -1,73 +1,63 @@
 package zmaster587.libVulpes.block;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.PropertyEnum;
+import net.minecraft.block.state.BlockStateContainer;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.IIcon;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.util.ForgeDirection;
-public class BlockFullyRotatable extends RotatableBlock {
+
+import javax.annotation.Nonnull;
+
+public class BlockFullyRotatable extends Block {
+	public static final PropertyEnum<EnumFacing> FACING =  PropertyEnum.create("facing", EnumFacing.class);
 
 	public BlockFullyRotatable(Material par2Material) {
 		super(par2Material);
 	}
 
+	/**
+	 * Convert the BlockState into the correct metadata value
+	 */
+	public int getMetaFromState(IBlockState state) {
+		return state.getValue(FACING).getIndex();
+	}
+
 	@Override
-	public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase entity, ItemStack stack) {
-		if(Math.abs(entity.rotationPitch) > 60) {
-			world.setBlockMetadataWithNotify(x, y, z, entity.rotationPitch > 0 ? ForgeDirection.UP.ordinal() : ForgeDirection.DOWN.ordinal(), 2);
+	public IBlockState getStateFromMeta(int meta) {
+		return this.getDefaultState().withProperty(FACING, EnumFacing.values()[meta]);
+	}
+
+	@Override
+	protected BlockStateContainer createBlockState() {
+		return new BlockStateContainer(this, FACING);
+	}
+
+	@Override
+	public IBlockState getStateForPlacement(World world, BlockPos pos,
+			EnumFacing facing, float hitX, float hitY, float hitZ, int meta,
+			EntityLivingBase placer, EnumHand hand) {
+		if(Math.abs(placer.rotationPitch) > 60)
+			return getDefaultState().withProperty(FACING, placer.rotationPitch > 0 ? EnumFacing.UP : EnumFacing.DOWN);
+		return  getDefaultState().withProperty(FACING, placer.getHorizontalFacing().getOpposite());//super.onBlockPlaced(worldIn, pos, facing, hitX, hitY, hitZ, meta, placer);
+	}
+	
+	@Override
+	public void onBlockPlacedBy(World world, BlockPos pos, IBlockState state, EntityLivingBase placer, @Nonnull ItemStack stack) {
+
+		if(Math.abs(placer.rotationPitch) > 60) {
+			world.setBlockState(pos, state.withProperty(FACING, placer.rotationPitch > 0 ? EnumFacing.UP : EnumFacing.DOWN), 2);
 		}
 		else
-			super.onBlockPlacedBy(world, x, y, z, entity, stack);
+			world.setBlockState(pos, state.withProperty(FACING, placer.getHorizontalFacing().getOpposite()), 2);
 	}
 
-	public static ForgeDirection getRelativeSide(int side, int meta) {
-		return getRelativeSide(ForgeDirection.getOrientation(side), meta & 7);
-	}
-
-	//North is defined as the front
-	public static ForgeDirection getRelativeSide(ForgeDirection side, int meta) {
-
-		ForgeDirection dir = ForgeDirection.getOrientation(meta & 7);
-
-		if(dir == ForgeDirection.NORTH)
-			return side;
-		else if(dir == ForgeDirection.SOUTH)
-			return side.getOpposite();
-		else if(dir == ForgeDirection.EAST)
-			return side.getRotation(ForgeDirection.DOWN);
-		else if(dir == ForgeDirection.WEST)
-			return side.getRotation(ForgeDirection.UP);
-		else if(dir == ForgeDirection.UP)
-			return side.getRotation(ForgeDirection.EAST);
-		else if (dir == ForgeDirection.DOWN)
-			return side.getRotation(ForgeDirection.WEST);	
-
-
-		return side.getOpposite();
-	}
-
-	@SideOnly(Side.CLIENT)
-	@Override
-	public IIcon getIcon(int dir, int meta) {
-
-		ForgeDirection side = getRelativeSide(dir,meta);
-
-		if(side == ForgeDirection.UP)
-			return this.top;
-		else if(side == ForgeDirection.DOWN)
-			return this.bottom;
-		else if(side == ForgeDirection.NORTH)
-			return this.front;
-		else if(side == ForgeDirection.EAST)
-			return this.sides;
-		else if(side == ForgeDirection.SOUTH)
-			return this.rear;
-		else if(side == ForgeDirection.WEST)
-			return this.sides;
-
-		return blockIcon;
+	public static EnumFacing getFront(IBlockState state) {
+		return state.getValue(FACING);
 	}
 }

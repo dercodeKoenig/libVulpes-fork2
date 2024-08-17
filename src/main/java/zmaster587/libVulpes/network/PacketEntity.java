@@ -1,9 +1,6 @@
 package zmaster587.libVulpes.network;
 
-import java.io.IOException;
-
 import io.netty.buffer.ByteBuf;
-import zmaster587.libVulpes.interfaces.INetworkEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
@@ -12,20 +9,23 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import zmaster587.libVulpes.interfaces.INetworkEntity;
+
+import java.io.IOException;
 
 public class PacketEntity extends BasePacket {
 
 	INetworkEntity entity;
 
 	NBTTagCompound nbt;
-
+	int entityId;
 	byte packetId;
 
 	public PacketEntity() {
 		nbt = new NBTTagCompound();
-	};
+	}
 
 	public PacketEntity(INetworkEntity machine, byte packetId) {
 		this();
@@ -47,18 +47,14 @@ public class PacketEntity extends BasePacket {
 	}
 
 	private void write(PacketBuffer out) {
-		out.writeInt(((Entity)entity).worldObj.provider.dimensionId);
+		out.writeInt(((Entity)entity).world.provider.getDimension());
 		out.writeInt(((Entity)entity).getEntityId());
 		out.writeByte(packetId);
 
 		out.writeBoolean(!nbt.hasNoTags());
 
 		if(!nbt.hasNoTags()) {
-			try {
-				out.writeNBTTagCompoundToBuffer(nbt);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			out.writeCompoundTag(nbt);
 		}
 
 		entity.writeDataToNetwork(out, packetId);
@@ -84,7 +80,7 @@ public class PacketEntity extends BasePacket {
 			NBTTagCompound nbt = null;
 
 			try {
-				nbt = in.readNBTTagCompoundFromBuffer();
+				nbt = in.readCompoundTag();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -92,7 +88,7 @@ public class PacketEntity extends BasePacket {
 			this.nbt = nbt;
 		}
 
-		if(ent != null && ent instanceof INetworkEntity) {
+		if(ent instanceof INetworkEntity) {
 			entity = (INetworkEntity)ent;
 			entity.readDataFromNetwork(in, packetId, nbt);
 		}
@@ -108,12 +104,15 @@ public class PacketEntity extends BasePacket {
 
 	@Override
 	public void executeServer(EntityPlayerMP player) {
-		execute((EntityPlayer)player, Side.SERVER);
+		execute(player, Side.SERVER);
 	}
 
 	@Override
 	public void executeClient(EntityPlayer player) {
-		execute((EntityPlayer)player, Side.CLIENT);
+		execute(player, Side.CLIENT);
+		if(entity == null) {
+			
+		}
 	}
 
 	@Override
@@ -125,7 +124,7 @@ public class PacketEntity extends BasePacket {
 		World world;
 
 		buffer.readInt();
-		world = Minecraft.getMinecraft().theWorld;
+		world = Minecraft.getMinecraft().world;
 
 
 		int entityId = buffer.readInt();
@@ -137,7 +136,7 @@ public class PacketEntity extends BasePacket {
 			NBTTagCompound nbt = null;
 
 			try {
-				nbt = buffer.readNBTTagCompoundFromBuffer();
+				nbt = buffer.readCompoundTag();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -145,12 +144,13 @@ public class PacketEntity extends BasePacket {
 			this.nbt = nbt;
 		}
 
-		if(ent != null && ent instanceof INetworkEntity) {
+		if(ent instanceof INetworkEntity) {
 			entity = (INetworkEntity)ent;
 			entity.readDataFromNetwork(buffer, packetId, nbt);
 		}
 		else {
-			//Error
+			this.entityId = entityId;
+			System.out.println("oh no...");
 		}
 	}
 

@@ -1,39 +1,42 @@
 package zmaster587.libVulpes.tile.multiblock.hatch;
 
-import java.util.LinkedList;
-import java.util.List;
-
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.ISidedInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.items.CapabilityItemHandler;
+import zmaster587.libVulpes.interfaces.IInventoryUpdateCallback;
 import zmaster587.libVulpes.inventory.modules.IModularInventory;
 import zmaster587.libVulpes.inventory.modules.ModuleBase;
 import zmaster587.libVulpes.inventory.modules.ModuleSlotArray;
 import zmaster587.libVulpes.tile.TilePointer;
 import zmaster587.libVulpes.tile.multiblock.TileMultiBlock;
 import zmaster587.libVulpes.util.EmbeddedInventory;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.ISidedInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.NetworkManager;
-import net.minecraft.network.Packet;
-import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
-import net.minecraft.tileentity.TileEntity;
 
-public class TileInventoryHatch extends TilePointer implements ISidedInventory, IModularInventory {
+import javax.annotation.Nonnull;
+import java.util.LinkedList;
+import java.util.List;
+
+public class TileInventoryHatch extends TilePointer implements ISidedInventory, IModularInventory, IInventoryUpdateCallback {
 
 	protected EmbeddedInventory inventory;
 
 	public TileInventoryHatch() {
-		inventory = new EmbeddedInventory(0);
+		inventory = new EmbeddedInventory(0, this);
 	}
 
 	public TileInventoryHatch(int invSize) {
-		inventory = new EmbeddedInventory(invSize);
+		inventory = new EmbeddedInventory(invSize, this);
 	}
 
 	@Override
-	public void writeToNBT(NBTTagCompound nbt) {
+	public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
 		super.writeToNBT(nbt);
 		inventory.writeToNBT(nbt);
+		return nbt;
 	}
 
 	@Override
@@ -44,100 +47,106 @@ public class TileInventoryHatch extends TilePointer implements ISidedInventory, 
 	}
 
 	@Override
-	protected void writeToNBTHelper(NBTTagCompound nbtTagCompound) {
-		super.writeToNBTHelper(nbtTagCompound);
-		inventory.writeToNBT(nbtTagCompound);
+	public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
+		if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
+			return true;
+		}
+		return super.hasCapability(capability, facing);
 	}
-	
+
+
 	@Override
-	protected void readFromNBTHelper(NBTTagCompound nbtTagCompound) {
-		super.readFromNBTHelper(nbtTagCompound);
-		inventory.readFromNBT(nbtTagCompound);
+	public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
+		if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
+			return (T) inventory;
+		}
+		return super.getCapability(capability, facing);
 	}
-	
+
 	@Override
 	public int getSizeInventory() {
 		return inventory.getSizeInventory();
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack getStackInSlot(int slot) {
 		return inventory.getStackInSlot(slot);
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack decrStackSize(int slot, int amt) {
 		return inventory.decrStackSize(slot, amt);
 	}
 
 	@Override
-	public ItemStack getStackInSlotOnClosing(int slot) {
-		return inventory.getStackInSlotOnClosing(slot);
-	}
-
-	@Override
-	public void setInventorySlotContents(int slot, ItemStack stack) {
+	public void setInventorySlotContents(int slot, @Nonnull ItemStack stack) {
 		setInventorySlotContentsNoUpdate(slot, stack);
 		if(this.hasMaster() && this.getMasterBlock() instanceof TileMultiBlock)
 			((TileMultiBlock)this.getMasterBlock()).onInventoryUpdated();
 	}
-	
-	
-	public void setInventorySlotContentsNoUpdate(int slot, ItemStack stack) {
+
+
+	public void setInventorySlotContentsNoUpdate(int slot, @Nonnull ItemStack stack) {
 		inventory.setInventorySlotContents(slot, stack);
 	}
 
 	@Override
-	public boolean hasCustomInventoryName() {
-		return inventory.hasCustomInventoryName();
+	public boolean hasCustomName() {
+		return inventory.hasCustomName();
 	}
-
 	@Override
 	public int getInventoryStackLimit() {
 		return inventory.getInventoryStackLimit();
 	}
 
 	@Override
-	public boolean isUseableByPlayer(EntityPlayer player) {
-		return player.getDistance(xCoord, yCoord, zCoord) < 64;
+	public boolean isUsableByPlayer(EntityPlayer player) {
+		return player.getDistanceSq(pos) < 64;
 	}
 
 	@Override
-	public void openInventory() {
+	public boolean isEmpty() {
+		return inventory.isEmpty();
+	}
+
+	@Override
+	public void openInventory(EntityPlayer entity) {
 
 	}
 
 	@Override
-	public void closeInventory() {
+	public void closeInventory(EntityPlayer entity) {
 
 	}
 
 	@Override
-	public boolean isItemValidForSlot(int slot, ItemStack stack) {
+	public boolean isItemValidForSlot(int slot, @Nonnull ItemStack stack) {
 		return inventory.isItemValidForSlot(slot, stack);
 	}
 
 	@Override
-	public int[] getAccessibleSlotsFromSide(int side) {
-
-		return inventory.getAccessibleSlotsFromSide(side);
+	@Nonnull
+	public int[] getSlotsForFace(EnumFacing side) {
+		return inventory.getSlotsForFace(side);
 	}
 
 	@Override
-	public boolean canInsertItem(int p_102007_1_, ItemStack p_102007_2_,
-			int p_102007_3_) {
-		return inventory.canInsertItem(p_102007_1_, p_102007_2_, p_102007_3_);
+	public boolean canInsertItem(int index, @Nonnull ItemStack itemStackIn,
+			EnumFacing direction) {
+		return inventory.canInsertItem(index, itemStackIn, direction);
 	}
 
 	@Override
-	public boolean canExtractItem(int p_102008_1_, ItemStack p_102008_2_,
-			int p_102008_3_) {
-		return inventory.canExtractItem(p_102008_1_, p_102008_2_, p_102008_3_);
+	public boolean canExtractItem(int index, @Nonnull ItemStack stack,
+			EnumFacing direction) {
+		return inventory.canExtractItem(index, stack, direction);
 	}
 
 	@Override
 	public List<ModuleBase> getModules(int ID, EntityPlayer player) {
-		LinkedList<ModuleBase> modules = new LinkedList<ModuleBase>();
+		LinkedList<ModuleBase> modules = new LinkedList<>();
 
 		modules.add(new ModuleSlotArray(8, 18, this, 0, this.getSizeInventory()));
 
@@ -145,7 +154,8 @@ public class TileInventoryHatch extends TilePointer implements ISidedInventory, 
 	}
 
 	@Override
-	public String getInventoryName() {
+	@Nonnull
+	public String getName() {
 		return getModularInventoryName();
 	}
 
@@ -162,12 +172,48 @@ public class TileInventoryHatch extends TilePointer implements ISidedInventory, 
 	@Override
 	public void onChunkUnload() {
 		super.onChunkUnload();
-		if(!worldObj.isRemote) {
+		if(!world.isRemote) {
 			TileEntity tile = getFinalPointedTile();
 			if(tile instanceof TileMultiBlock) {
 				((TileMultiBlock) tile).invalidateComponent(this);
 			}
 		}
+	}
+
+	@Override
+	@Nonnull
+	public ItemStack removeStackFromSlot(int index) {
+		return inventory.removeStackFromSlot(index);
+	}
+
+	@Override
+	public int getField(int id) {
+		return inventory.getField(id);
+	}
+
+	@Override
+	public void setField(int id, int value) {
+		inventory.setField(id, value);
+
+	}
+
+	@Override
+	public int getFieldCount() {
+		return inventory.getFieldCount();
+	}
+
+	@Override
+	public void clear() {
+		inventory.clear();
+	}
+
+	@Override
+	public void onInventoryUpdated(int slot) {
+		if(this.hasMaster() && this.getMasterBlock() instanceof TileMultiBlock)
+			((TileMultiBlock)this.getMasterBlock()).onInventoryUpdated();
+
+
+		world.notifyNeighborsOfStateChange(pos,this.getBlockType(), true);
 	}
 
 }

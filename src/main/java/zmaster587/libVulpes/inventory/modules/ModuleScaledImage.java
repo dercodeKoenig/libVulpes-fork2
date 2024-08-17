@@ -1,15 +1,16 @@
 package zmaster587.libVulpes.inventory.modules;
 
-import org.lwjgl.opengl.GL11;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.ResourceLocation;
-import zmaster587.libVulpes.util.IconResource;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import org.lwjgl.opengl.GL11;
 
 public class ModuleScaledImage extends ModuleBase {
 	
@@ -70,14 +71,14 @@ public class ModuleScaledImage extends ModuleBase {
 		}
 			
 		Minecraft.getMinecraft().getTextureManager().bindTexture(icon);
-        Tessellator tessellator = Tessellator.instance;
-        tessellator.startDrawingQuads();
-        tessellator.addVertexWithUV((double)(x + this.offsetX), (double)(y + this.offsetY + sizeY), (double)0, minX, maxY);
-        tessellator.addVertexWithUV((double)(x + this.offsetX + sizeX), (double)(y + this.offsetY + sizeY), (double)0, maxX, maxY);
-        tessellator.addVertexWithUV((double)(x + this.offsetX + sizeX), (double)(y + this.offsetY), (double)0, maxX, minY);
-        tessellator.addVertexWithUV((double)(x + this.offsetX), (double)(y + this.offsetY), (double)0, minX, minY);
-        tessellator.draw();
-        
+		GlStateManager.color(alpha, alpha, alpha, alpha);
+        BufferBuilder buff = Tessellator.getInstance().getBuffer();
+        buff.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
+        buff.pos(x + this.offsetX, y + this.offsetY + sizeY, 0).tex(minX, maxY).endVertex();
+        buff.pos(x + this.offsetX + sizeX, y + this.offsetY + sizeY, 0).tex(maxX, maxY).endVertex();
+        buff.pos(x + this.offsetX + sizeX, y + this.offsetY, 0).tex(maxX, minY).endVertex();
+        buff.pos(x + this.offsetX, y + this.offsetY, 0).tex(minX, minY).endVertex();
+        Tessellator.getInstance().draw();
         if(alpha < 1f) {
 			GL11.glColor4d(1f, 1f, 1f, 1f);
 			GL11.glDisable(GL11.GL_BLEND);

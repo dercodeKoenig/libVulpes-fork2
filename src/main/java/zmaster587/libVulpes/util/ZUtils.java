@@ -1,20 +1,25 @@
 package zmaster587.libVulpes.util;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-
-import zmaster587.libVulpes.util.ZUtils.RedstoneState;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.util.MathHelper;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.registry.RegistryNamespaced;
 import net.minecraft.world.World;
-import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.oredict.OreDictionary;
+
+import javax.annotation.Nonnull;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
 
 public class ZUtils {
 
@@ -38,7 +43,7 @@ public class ZUtils {
 			else
 				return RedstoneState.values()[i];
 		}
-
+		
 		public void writeToNBT(NBTTagCompound tag) {
 			tag.setByte("redstoneState", (byte)this.ordinal());
 		}
@@ -53,7 +58,7 @@ public class ZUtils {
 	}
 
 	public static int getDirectionFacing(float rotationYaw) {
-		int l = MathHelper.floor_double((double)(MathHelper.wrapAngleTo180_float(rotationYaw) * 4.0F / 360.0F) + 0.5D) & 3;
+		int l = MathHelper.floor((double)(MathHelper.wrapDegrees(rotationYaw) * 4.0F / 360.0F) + 0.5D) & 3;
 
 		if(l == 0)
 			l = 2;
@@ -79,6 +84,51 @@ public class ZUtils {
 		return returnList;
 	}
 
+
+	public static TileEntity createTile(NBTTagCompound nbt)
+	{
+		TileEntity tileentity = null;
+		ResourceLocation s = new ResourceLocation(nbt.getString("id"));
+		Class <? extends TileEntity > oclass = null;
+
+
+		try
+		{
+			oclass = ((RegistryNamespaced < ResourceLocation, Class <? extends TileEntity >>)ObfuscationReflectionHelper.getPrivateValue(TileEntity.class, null, "field_190562_f", "REGISTRY")).getObject(s);
+
+			if (oclass != null)
+			{
+				tileentity = oclass.newInstance();
+			}
+		}
+		catch (Throwable throwable1)
+		{
+			net.minecraftforge.fml.common.FMLLog.log(org.apache.logging.log4j.Level.ERROR, throwable1,
+					"A TileEntity %s(%s) has thrown an exception during loading, its state cannot be restored. Report this to the mod author",
+					s, oclass.getName());
+		}
+
+		if (tileentity != null)
+		{
+			try
+			{
+				tileentity.readFromNBT(nbt);
+			}
+			catch (Throwable throwable)
+			{
+				net.minecraftforge.fml.common.FMLLog.log(org.apache.logging.log4j.Level.ERROR, throwable,
+						"A TileEntity %s(%s) has thrown an exception during loading, its state cannot be restored. Report this to the mod author",
+						s, oclass.getName());
+				tileentity = null;
+			}
+		}
+		else
+		{
+			net.minecraftforge.fml.common.FMLLog.warning("Skipping BlockEntity with id {}", s);
+		}
+
+		return tileentity;
+	}
 	/**
 	 * @param axis Axis Aligned Bounding box to rotate
 	 * @param angleDeg amount to rotate the bounding box in radians
@@ -106,14 +156,12 @@ public class ZUtils {
 			maxX = buffer;
 		}
 
-		AxisAlignedBB ret = axis.copy().setBounds(minX,
+		return new AxisAlignedBB(minX,
 				axis.minY,
 				minZ,
 				maxX,
 				axis.maxY,
 				maxZ);
-
-		return ret;
 	}
 
 	/**
@@ -127,7 +175,8 @@ public class ZUtils {
 	public static AxisAlignedBB convertLocalBBToGlobal(AxisAlignedBB local, AxisAlignedBB global, Entity e, double angle) {
 		AxisAlignedBB rotatedLocal = rotateAABB(local, angle);
 
-		return AxisAlignedBB.getBoundingBox(e.posX + rotatedLocal.minX, e.posY + rotatedLocal.minY, e.posZ + rotatedLocal.minZ, rotatedLocal.maxX + e.posX, rotatedLocal.maxY + e.posY, rotatedLocal.maxZ + e.posZ);
+
+		return new AxisAlignedBB(e.posX + rotatedLocal.minX, e.posY + rotatedLocal.minY, e.posZ + rotatedLocal.minZ, rotatedLocal.maxX + e.posX, rotatedLocal.maxY + e.posY, rotatedLocal.maxZ + e.posZ);
 	}
 
 	public static String formatNumber(int number) {
@@ -148,7 +197,7 @@ public class ZUtils {
 			return true;
 
 		for(ItemStack i : stack) {
-			if(i != null)
+			if(!i.isEmpty())
 				return false;
 		}
 
@@ -175,23 +224,23 @@ public class ZUtils {
 		return false;
 	}
 
-	public static boolean isInvEmpty(IInventory stack) {
+	public static boolean isInvEmpty(IInventory inv) {
 		boolean empty = true;
-		if(stack == null)
+		if(inv == null)
 			return true;
 
-		for(int i = 0; i < stack.getSizeInventory(); i++) {
-			if(stack.getStackInSlot(i) != null)
+		for(int i = 0; i < inv.getSizeInventory(); i++) {
+			if(!inv.getStackInSlot(i).isEmpty())
 				return false;
 		}
 
 		return true;
 	}
 
-	public static boolean doesInvHaveRoom(ItemStack item, IInventory inv) {
+	public static boolean doesInvHaveRoom(@Nonnull ItemStack item, IInventory inv) {
 		for(int i = 0; i < inv.getSizeInventory(); i++)
 		{
-			if(inv.getStackInSlot(i) == null || (item.isItemEqual(inv.getStackInSlot(i)) && inv.getStackInSlot(i).stackSize < inv.getInventoryStackLimit()))
+			if(inv.getStackInSlot(i).isEmpty() || (item.isItemEqual(inv.getStackInSlot(i)) && inv.getStackInSlot(i).getCount() < inv.getInventoryStackLimit()))
 				return true;
 		}
 
@@ -202,7 +251,7 @@ public class ZUtils {
 
 		for(int i = 0; i < inv.getSizeInventory(); i++)
 		{
-			if(inv.getStackInSlot(i) != null && inv.getStackInSlot(i).getMaxStackSize() == inv.getStackInSlot(i).stackSize)
+			if(!inv.getStackInSlot(i).isEmpty() && inv.getStackInSlot(i).getMaxStackSize() == inv.getStackInSlot(i).getCount())
 				return true;
 		}
 
@@ -214,7 +263,7 @@ public class ZUtils {
 
 		for(int i = 0; i < inv.getSizeInventory(); i++)
 		{
-			if(inv.getStackInSlot(i) == null)
+			if(inv.getStackInSlot(i).isEmpty())
 				num++;
 		}
 
@@ -226,7 +275,7 @@ public class ZUtils {
 
 		for(int i = 0; i < inv.getSizeInventory(); i++)
 		{
-			if(inv.getStackInSlot(i) != null && inv.getStackInSlot(i).stackSize == inv.getStackInSlot(i).getMaxStackSize())
+			if(!inv.getStackInSlot(i).isEmpty() && inv.getStackInSlot(i).getCount() == inv.getStackInSlot(i).getMaxStackSize())
 				num++;
 		}
 
@@ -238,90 +287,112 @@ public class ZUtils {
 			int firstEmtpySlot = -1;
 			int slot;
 
-			if(a[i] != null) {
+			if(!a[i].isEmpty()) {
 				for(slot = 0; slot < b.getSizeInventory(); slot++) {
 
-					if(b.getStackInSlot(slot) == null) {
+					if(b.getStackInSlot(slot).isEmpty()) {
 						if(firstEmtpySlot == -1)
 							firstEmtpySlot = slot;
 					}
 					else if(b.getStackInSlot(slot).isItemEqual(a[i])) //b.isItemValidForSlot(slot, a[i]))//
 					{
-						int maxTransfer = b.getInventoryStackLimit() - b.getStackInSlot(slot).stackSize;
+						int maxTransfer = b.getInventoryStackLimit() - b.getStackInSlot(slot).getCount();
 
-						if(a[i].stackSize < maxTransfer) {
+						if(a[i].getCount() < maxTransfer) {
 							//chest.setInventorySlotContents(g, itemstack);
-							b.getStackInSlot(slot).stackSize += a[i].stackSize;
-							a[i] = null;
+							b.getStackInSlot(slot).setCount(b.getStackInSlot(slot).getCount() + a[i].getCount());
+							a[i] = ItemStack.EMPTY;
 							break;
 						}
 						else {
-							b.getStackInSlot(slot).stackSize = b.getInventoryStackLimit();
-							a[i].stackSize -= maxTransfer;
+							b.getStackInSlot(slot).setCount(b.getInventoryStackLimit());
+							a[i].setCount(a[i].getCount() - maxTransfer);
 						}
 					}
 				}
 
-				if(a[i] != null && firstEmtpySlot != -1) {
+				if(!a[i].isEmpty() && firstEmtpySlot != -1) {
 					b.setInventorySlotContents(firstEmtpySlot, a[i].copy());
-					a[i] = null;
+					a[i] = ItemStack.EMPTY;
 				}
 			}
 		}
 	}
 
-	public static void mergeInventory(ItemStack a, IInventory b) {
+	public static void mergeInventory(@Nonnull ItemStack a, IInventory b) {
 		int firstEmtpySlot = -1;
 		int slot;
 
-		if(a != null) {
+		if(!a.isEmpty()) {
 			for(slot = 0; slot < b.getSizeInventory(); slot++) {
 
-				if(b.getStackInSlot(slot) == null) {
+				if(b.getStackInSlot(slot).isEmpty()) {
 					if(firstEmtpySlot == -1)
 						firstEmtpySlot = slot;
 				}
 				else if(b.getStackInSlot(slot).isItemEqual(a)) //b.isItemValidForSlot(slot, a[i]))//
 				{
-					int maxTransfer = b.getInventoryStackLimit() - b.getStackInSlot(slot).stackSize;
+					int maxTransfer = b.getInventoryStackLimit() - b.getStackInSlot(slot).getCount();
 
-					if(a.stackSize < maxTransfer) {
+					if(a.getCount() < maxTransfer) {
 						//chest.setInventorySlotContents(g, itemstack);
-						b.getStackInSlot(slot).stackSize += a.stackSize;
-						a = null;
+						b.getStackInSlot(slot).setCount(b.getStackInSlot(slot).getCount() + a.getCount());
+						a = ItemStack.EMPTY;
 						break;
 					}
 					else {
-						b.getStackInSlot(slot).stackSize = b.getInventoryStackLimit();
-						a.stackSize -= maxTransfer;
+						b.getStackInSlot(slot).setCount( b.getInventoryStackLimit());
+						a.setCount( a.getCount() - maxTransfer);
 					}
 				}
 			}
 
-			if(a != null && firstEmtpySlot != -1) {
-				if(a.stackSize != 0)
+			if(!a.isEmpty() && firstEmtpySlot != -1) {
+				if(a.getCount() != 0)
 					b.setInventorySlotContents(firstEmtpySlot, a.copy());
-				a = null;
+				a =  ItemStack.EMPTY;
 			}
 		}
 	}
 
-	public static ItemStack getFirstItemInInv(ItemStack i[]) {
+	@Nonnull
+	public static ItemStack getFirstItemInInv(@Nonnull ItemStack[] i) {
 		for(ItemStack stack : i)
-			if(stack != null) return stack;
-		return null;
+			if(!stack.isEmpty()) return stack;
+		return ItemStack.EMPTY;
 	}
 
 	public static int getFirstFilledSlotIndex(IInventory inv) {
 		for(int i = 0; i < inv.getSizeInventory(); i++)
-			if(inv.getStackInSlot(i) != null) return i;
+			if(inv.getStackInSlot(i) != ItemStack.EMPTY) return i;
 		return inv.getSizeInventory();
 	}
 
-	public static int getContinuousBlockLength(World world, ForgeDirection direction, int startx, int starty, int startz, int maxDist, Block block) {
+	public static int getContinuousBlockLength(World world, EnumFacing direction, BlockPos pos, int maxDist, Block block) {
 		int dist = 0;
 		for(int i = 0; i < maxDist; i++) {
-			if(world.getBlock(startx + (i*direction.offsetX), starty + (i*direction.offsetY), startz + (i*direction.offsetZ)) != block) 
+			if(world.getBlockState(new BlockPos(pos.add((i*direction.getFrontOffsetX()), (i*direction.getFrontOffsetY()), (i*direction.getFrontOffsetZ())))).getBlock() != block) 
+				break;
+
+			dist = i+1;
+		}
+
+		return dist;
+	}
+	
+	public static int getContinuousBlockLength(World world, EnumFacing direction, BlockPos pos, int maxDist, Block[] blocks) {
+		int dist = 0;
+		for(int i = 0; i < maxDist; i++) {
+			Block blockchecked = world.getBlockState(new BlockPos(pos.add((i*direction.getFrontOffsetX()), (i*direction.getFrontOffsetY()), (i*direction.getFrontOffsetZ())))).getBlock();
+			boolean exists = false;
+			for( Block b : blocks ) {
+				if(blockchecked == b) {
+					exists = true;
+					break;
+				}
+			}
+			
+			if(!exists) 
 				break;
 
 			dist = i+1;
@@ -330,7 +401,7 @@ public class ZUtils {
 		return dist;
 	}
 
-	public static boolean areOresSameTypeOreDict(ItemStack stack1, ItemStack stack2) {
+	public static boolean areOresSameTypeOreDict(@Nonnull ItemStack stack1, @Nonnull ItemStack stack2) {
 		int[] stack1Id = OreDictionary.getOreIDs(stack1);
 		int[] stack2Id = OreDictionary.getOreIDs(stack2);
 
@@ -341,6 +412,14 @@ public class ZUtils {
 			}
 		}
 
+		return false;
+	}
+
+	public static boolean isItemInOreDict(@Nonnull ItemStack stack, String oreDictEntry) {
+		List<ItemStack> itemStacks = OreDictionary.getOres(oreDictEntry);
+		for(ItemStack stack1 : itemStacks)
+			if(OreDictionary.itemMatches(stack1, stack, false))
+				return true;
 		return false;
 	}
 }

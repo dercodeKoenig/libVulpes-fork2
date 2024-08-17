@@ -1,80 +1,67 @@
 package zmaster587.libVulpes.block;
 
-import zmaster587.libVulpes.util.ZUtils;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockHorizontal;
 import net.minecraft.block.material.Material;
+import net.minecraft.block.properties.PropertyEnum;
+import net.minecraft.block.state.BlockStateContainer;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.IIcon;
-import net.minecraft.util.MathHelper;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.util.ForgeDirection;
+
+import javax.annotation.Nonnull;
 
 public class RotatableBlock extends Block {
 
-	protected IIcon front, rear, sides, top, bottom;
+	public static final PropertyEnum<EnumFacing> FACING =  BlockHorizontal.FACING;
+    protected boolean isBlockContainer;
 
-	public RotatableBlock(Material par2Material) {
+    public RotatableBlock(Material par2Material) {
 		super(par2Material);
 	}
+
+	/**
+	 * Convert the BlockState into the correct metadata value
+	 */
+	public int getMetaFromState(IBlockState state) {
+		return state.getValue(FACING).getIndex();
+	}
+
+	@Override
+	public IBlockState getStateFromMeta(int meta) {
+		if(meta > 1)
+			return this.getDefaultState().withProperty(FACING, EnumFacing.values()[meta & 7]);
+		else
+			return this.getDefaultState().withProperty(FACING, EnumFacing.NORTH);
+	}
+
+	@Override
+	protected BlockStateContainer createBlockState() {
+		return new BlockStateContainer(this, FACING);
+	}
+
 	
 	
 	@Override
-	public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase entity, ItemStack stack) {
-		
-		world.setBlockMetadataWithNotify(x, y, z, ZUtils.getDirectionFacing(entity.rotationYaw), 2);
+	@Nonnull
+	public IBlockState getStateForPlacement(World world, BlockPos pos,
+			EnumFacing facing, float hitX, float hitY, float hitZ, int meta,
+			EntityLivingBase placer, EnumHand hand) {
+		return  getDefaultState().withProperty(FACING, placer.getHorizontalFacing().getOpposite());//super.onBlockPlaced(worldIn, pos, facing, hitX, hitY, hitZ, meta, placer);
 	}
-	
-	public static ForgeDirection getFront(int meta) {
-		return ForgeDirection.getOrientation(meta & 7);
-	}
-	
-	public static ForgeDirection getRelativeSide(int side, int meta) {
-		return getRelativeSide(ForgeDirection.getOrientation(side), meta & 7);
-	}
-	
-	//North is defined as the front
-	public static ForgeDirection getRelativeSide(ForgeDirection side, int meta) {
-		
-		if(side == ForgeDirection.UP || side == ForgeDirection.DOWN)
-			return side;
-		
-		ForgeDirection dir = ForgeDirection.getOrientation(meta & 7);
-		
-		if(dir == ForgeDirection.NORTH)
-			return side;
-		else if(dir == ForgeDirection.SOUTH)
-			return side.getOpposite();
-		else if(dir == ForgeDirection.EAST)
-			return side.getRotation(ForgeDirection.DOWN);
-		else if(dir == ForgeDirection.WEST)
-			return side.getRotation(ForgeDirection.UP);
-					
-		
-		return side.getOpposite();
-	}
-	
-	@SideOnly(Side.CLIENT)
 	@Override
-	public IIcon getIcon(int dir, int meta) {
-		
-		ForgeDirection side = getRelativeSide(dir,meta);
-		
-		if(side == ForgeDirection.UP)
-			return this.top;
-		else if(side == ForgeDirection.DOWN)
-			return this.bottom;
-		else if(side == ForgeDirection.NORTH)
-			return this.front;
-		else if(side == ForgeDirection.EAST)
-			return this.sides;
-		else if(side == ForgeDirection.SOUTH)
-			return this.rear;
-		else if(side == ForgeDirection.WEST)
-			return this.sides;
-		
-		return blockIcon;
+	public void onBlockPlacedBy(World world, BlockPos pos, IBlockState state, EntityLivingBase placer, @Nonnull ItemStack stack) {
+
+		world.setBlockState(pos, state.withProperty(FACING, placer.getHorizontalFacing().getOpposite()), 2);
+	}
+
+	public static EnumFacing getFront(IBlockState state) {
+		if(state.getBlock() instanceof RotatableBlock)
+			return state.getValue(FACING);
+		return EnumFacing.UP;
 	}
 }

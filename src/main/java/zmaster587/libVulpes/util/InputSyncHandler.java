@@ -1,40 +1,34 @@
 package zmaster587.libVulpes.util;
 
-import java.util.HashMap;
-
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
-
-import org.lwjgl.input.Keyboard;
-
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
 import zmaster587.libVulpes.api.IJetPack;
 import zmaster587.libVulpes.api.IModularArmor;
-import zmaster587.libVulpes.network.PacketChangeKeyState;
-import zmaster587.libVulpes.network.PacketHandler;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.InputEvent;
-import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent;
-import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
+
+import java.util.HashMap;
+import java.util.UUID;
 
 public class InputSyncHandler {
-
-	public static HashMap<EntityPlayer, Boolean> spaceDown = new HashMap<EntityPlayer, Boolean>();
-	
+	public static HashMap<UUID, Boolean> spaceDown = new HashMap<>();
 
 	public static boolean isSpaceDown(EntityPlayer player) {
-		Boolean bool = spaceDown.get(player);
+		Boolean bool = spaceDown.get(player.getUniqueID());
 		
 		return bool != null && bool;
 	}
 	
-	//Called on server
+	//Called on server (and client in AR KeyBindings class)
 	public static void updateKeyPress(EntityPlayer player, int key, boolean state) {
 		ItemStack stack;
 		switch(key) {
 		case 0:
-			stack = player.getEquipmentInSlot(3);
-			if(stack != null) {
+			
+			stack = player.inventory.armorInventory.get(2);
+			if(!stack.isEmpty()) {
 				IJetPack pack;
 				if(stack.getItem() instanceof IJetPack) {
 					pack = ((IJetPack)stack.getItem());
@@ -44,7 +38,7 @@ public class InputSyncHandler {
 					IInventory inv = ((IModularArmor)stack.getItem()).loadModuleInventory(stack);
 					
 					for(int i = 0; i < inv.getSizeInventory(); i++) {
-						if(inv.getStackInSlot(i) != null && inv.getStackInSlot(i).getItem() instanceof IJetPack) {
+						if(!inv.getStackInSlot(i).isEmpty() && inv.getStackInSlot(i).getItem() instanceof IJetPack) {
 							pack = ((IJetPack)inv.getStackInSlot(i).getItem());
 							pack.setEnabledState(inv.getStackInSlot(i), !pack.isEnabled(inv.getStackInSlot(i)));
 						}
@@ -56,8 +50,8 @@ public class InputSyncHandler {
 			break;
 			
 		case 1:
-			stack = player.getEquipmentInSlot(3);
-			if(stack != null) {
+			stack = player.inventory.armorInventory.get(2);
+			if(!stack.isEmpty()) {
 				IJetPack pack;
 				if(stack.getItem() instanceof IJetPack) {
 					pack = ((IJetPack)stack.getItem());
@@ -67,7 +61,7 @@ public class InputSyncHandler {
 					IInventory inv = ((IModularArmor)stack.getItem()).loadModuleInventory(stack);
 					
 					for(int i = 0; i < inv.getSizeInventory(); i++) {
-						if(inv.getStackInSlot(i) != null && inv.getStackInSlot(i).getItem() instanceof IJetPack) {
+						if(!inv.getStackInSlot(i).isEmpty() && inv.getStackInSlot(i).getItem() instanceof IJetPack) {
 							pack = ((IJetPack)inv.getStackInSlot(i).getItem());
 							pack.changeMode(inv.getStackInSlot(i), inv, player);
 						}
@@ -78,7 +72,7 @@ public class InputSyncHandler {
 			}
 			break;
 		case 57: //SPACE
-			spaceDown.put(player, state);
+			spaceDown.put(player.getUniqueID(), state);
 			break;
 			
 			default:
@@ -88,11 +82,11 @@ public class InputSyncHandler {
 	
 	@SubscribeEvent
 	public void onPlayerLoggedOut(PlayerLoggedOutEvent evt) {
-		spaceDown.remove(evt.player);
+		spaceDown.remove(evt.player.getUniqueID());
 	}
 
 	@SubscribeEvent
 	public void onDimChanged(PlayerChangedDimensionEvent evt) {
-		spaceDown.remove(evt.player);
+		spaceDown.remove(evt.player.getUniqueID());
 	}
 }

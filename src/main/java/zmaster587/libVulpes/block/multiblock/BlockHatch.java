@@ -1,121 +1,70 @@
 package zmaster587.libVulpes.block.multiblock;
 
-import java.util.List;
-import java.util.Random;
-
+import net.minecraft.block.material.Material;
+import net.minecraft.block.state.BlockStateContainer;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.IInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.NonNullList;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
+import net.minecraftforge.fluids.FluidActionResult;
+import net.minecraftforge.fluids.FluidUtil;
+import net.minecraftforge.items.CapabilityItemHandler;
+import net.minecraftforge.items.IItemHandler;
 import zmaster587.libVulpes.LibVulpes;
 import zmaster587.libVulpes.inventory.GuiHandler;
 import zmaster587.libVulpes.tile.TilePointer;
 import zmaster587.libVulpes.tile.multiblock.TileMultiBlock;
 import zmaster587.libVulpes.tile.multiblock.hatch.TileFluidHatch;
 import zmaster587.libVulpes.tile.multiblock.hatch.TileInputHatch;
+import zmaster587.libVulpes.tile.multiblock.hatch.TileInventoryHatch;
 import zmaster587.libVulpes.tile.multiblock.hatch.TileOutputHatch;
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.client.renderer.texture.IIconRegister;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.IIcon;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
-import net.minecraftforge.common.util.ForgeDirection;
+import zmaster587.libVulpes.util.FluidUtils;
+
+import java.util.Random;
 
 public class BlockHatch extends BlockMultiblockStructure {
-
-	protected IIcon output;
-
-	IIcon fluidInput;
-
-	IIcon fluidOutput;
 
 	private final Random random = new Random();
 
 	public BlockHatch(Material material) {
 		super(material);
 		isBlockContainer = true;
+		this.setDefaultState(this.blockState.getBaseState().withProperty(VARIANT,0));
 	}
 
+	protected BlockStateContainer createBlockState()
+	{
+		return new BlockStateContainer(this, VARIANT);
+	}
 
 	@Override
-	public boolean hasTileEntity(int metadata) {
+	public boolean hasTileEntity(IBlockState state) {
 		return true;
 	}
-
+	
 	@Override
-	public int damageDropped(int meta) {
-		return meta & 7;
-	}
-
-
-	@Override
-	public int isProvidingWeakPower(IBlockAccess world,
-			int x, int y, int z, int dir) {
-		ForgeDirection direction = ForgeDirection.getOrientation(dir);
-		boolean isPointer = world.getTileEntity(x - direction.offsetX , y- direction.offsetY, z - direction.offsetZ) instanceof TilePointer;
-		if(isPointer)
-			isPointer = isPointer && !(((TilePointer)world.getTileEntity(x - direction.offsetX , y- direction.offsetY, z- direction.offsetZ)).getMasterBlock() instanceof TileMultiBlock);
-
-
-		return !isPointer && (world.getBlockMetadata(x, y, z) & 8) != 0 ? 15 : 0;
+	public void getSubBlocks(CreativeTabs tab,
+			NonNullList<ItemStack> list) {
+		list.add(new ItemStack(this, 1, 0));
+		list.add(new ItemStack(this, 1, 1));
+		list.add(new ItemStack(this, 1, 2));
+		list.add(new ItemStack(this, 1, 3));
 	}
 
 	@Override
-	public boolean canProvidePower() {
-		return true;
-	}
-
-	public void setRedstoneState(World world, int x, int y, int z, boolean state) {
-		if(world.getBlock(x, y, z) == this) {
-			if(state && (world.getBlockMetadata(x, y, z) & 8) == 0) {
-				world.setBlockMetadataWithNotify(x, y, z, world.getBlockMetadata(x, y, z) | 8, 3);
-				world.markBlockForUpdate(x, y, z);
-			}
-			else if(!state && (world.getBlockMetadata(x, y, z) & 8) != 0) {
-				world.setBlockMetadataWithNotify(x, y, z, world.getBlockMetadata(x, y, z) & 7, 3);
-				world.markBlockForUpdate(x, y, z);
-			}
-		}
-	}
-
-	@Override
-	public void registerBlockIcons(IIconRegister iconRegister) {
-		super.registerBlockIcons(iconRegister);
-		output = iconRegister.registerIcon("libvulpes:outputHatch");
-		blockIcon = iconRegister.registerIcon("libvulpes:inputHatch");
-		fluidInput = iconRegister.registerIcon("libvulpes:fluidInput");
-		fluidOutput = iconRegister.registerIcon("libvulpes:fluidOutput");
-	}
-
-	@Override
-	public IIcon getIcon(int side, int meta) {
-		if((meta & 7) == 0) {
-			return blockIcon;
-		}else if((meta & 7) == 1 ) {
-			return output;
-		}
-		else if((meta & 7) == 2 )
-			return fluidInput;
-		else
-			return fluidOutput;
-	}
-
-	@Override
-	public void getSubBlocks(Item item, CreativeTabs tab,
-			List list) {
-		list.add(new ItemStack(item, 1, 0));
-		list.add(new ItemStack(item, 1, 1));
-		list.add(new ItemStack(item, 1, 2));
-		list.add(new ItemStack(item, 1, 3));
-	}
-
-	@Override
-	public TileEntity createTileEntity(World world, int metadata) {
+	public TileEntity createTileEntity(World world, IBlockState state) {
 		//TODO: multiple sized Hatches
+		int metadata = state.getValue(VARIANT);
 		if((metadata & 7) == 0)
 			return new TileInputHatch(4);
 		else if((metadata & 7) == 1)
@@ -129,51 +78,102 @@ public class BlockHatch extends BlockMultiblockStructure {
 	}
 
 	@Override
-	public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
+	public void breakBlock(World world, BlockPos pos, IBlockState state) {
 
-		TileEntity tile = world.getTileEntity(x, y, z);
-		if(tile != null && tile instanceof IInventory) {
+		TileEntity tile = world.getTileEntity(pos);
+		if(tile instanceof IInventory) {
 			IInventory inventory = (IInventory)tile;
 			for(int i = 0; i < inventory.getSizeInventory(); i++) {
 				ItemStack stack = inventory.getStackInSlot(i);
 
-				if(stack == null)
+				if(stack.isEmpty())
 					continue;
 
-				EntityItem entityitem = new EntityItem(world, x, y, z, stack);
+				EntityItem entityitem = new EntityItem(world, pos.getX(), pos.getY(), pos.getZ(), stack);
 
 				float mult = 0.05F;
 
-				entityitem.motionX = (double)((float)this.random.nextGaussian() * mult);
-				entityitem.motionY = (double)((float)this.random.nextGaussian() * mult + 0.2F);
-				entityitem.motionZ = (double)((float)this.random.nextGaussian() * mult);
+				entityitem.motionX = (float)this.random.nextGaussian() * mult;
+				entityitem.motionY = (float)this.random.nextGaussian() * mult + 0.2F;
+				entityitem.motionZ = (float)this.random.nextGaussian() * mult;
 
-				world.spawnEntityInWorld(entityitem);
+				world.spawnEntity(entityitem);
 			}
 		}
 
-		super.breakBlock(world, x, y, z, block, meta);
+		super.breakBlock(world, pos, state);
 	}
 
 	@Override
-	public boolean shouldSideBeRendered(IBlockAccess access, int x, int y, int z, int side) {
-		ForgeDirection direction = ForgeDirection.getOrientation(side);
-		boolean isPointer = access.getTileEntity(x - direction.offsetX , y- direction.offsetY, z - direction.offsetZ) instanceof TilePointer;
+	public boolean hasComparatorInputOverride(IBlockState state)
+	{
+		return true;
+	}
+
+	@Override
+	public int getComparatorInputOverride(IBlockState blockState, World worldIn, BlockPos pos) {
+		TileEntity tile = worldIn.getTileEntity(pos);
+		//Fluid comparator size
+		if (tile instanceof TileFluidHatch)
+			return (15 * ((TileFluidHatch) tile).getFluidTank().getFluidAmount())/((TileFluidHatch) tile).getFluidTank().getCapacity();
+		//Otherwise, try if it's an inventory - this code is adapted from how chests do it because we don't extend BlockContainer
+		else if (tile instanceof TileInventoryHatch) {
+			TileInventoryHatch tile2 = ((TileInventoryHatch) tile);
+			int i = 0;
+			float f = 0.0F;
+
+			for (int j = 0; j < tile2.getSizeInventory(); ++j) {
+				ItemStack itemstack = tile2.getStackInSlot(j);
+
+				if (!itemstack.isEmpty()) {
+					f += (float) itemstack.getCount() / (float) Math.min(tile2.getInventoryStackLimit(), itemstack.getMaxStackSize());
+					i++;
+				}
+			}
+			f = f / (float) tile2.getSizeInventory();
+			return MathHelper.floor(f * 14.0F) + (i > 0 ? 1 : 0);
+		}
+		//Failing that, we do nothing
+		return 0;
+	}
+
+	@Override
+	public boolean shouldSideBeRendered(IBlockState blockState,
+			IBlockAccess blockAccess, BlockPos pos, EnumFacing direction) {
+
+
+		boolean isPointer = blockAccess.getTileEntity(pos.offset(direction.getOpposite())) instanceof TilePointer;
 		if(isPointer)
-			isPointer = isPointer && !(((TilePointer)access.getTileEntity(x - direction.offsetX , y- direction.offsetY, z- direction.offsetZ)).getMasterBlock() instanceof TileMultiBlock);
-		return ( isPointer || access.getBlockMetadata(x - direction.offsetX, y- direction.offsetY, z - direction.offsetZ) < 8);
+			isPointer = !(((TilePointer)blockAccess.getTileEntity(pos.offset(direction.getOpposite()))).getMasterBlock() instanceof TileMultiBlock);
+
+		return blockState.getValue(VARIANT) < 8;
+
 	}
 
 	@Override
-	public boolean onBlockActivated(World world, int x,
-			int y, int z, EntityPlayer player,
-			int arg1, float arg2, float arg3,
-			float arg4) {
+	public boolean onBlockActivated(World worldIn, BlockPos pos, IBlockState state, EntityPlayer playerIn, EnumHand hand, EnumFacing facing, float hitX, float hitY, float hitZ) {
+		int meta = worldIn.getBlockState(pos).getValue(VARIANT);
+		TileEntity tile = worldIn.getTileEntity(pos);
+		ItemStack heldItem = playerIn.getHeldItem(hand);
 
-		int meta = world.getBlockMetadata(x, y, z);
-		//Handlue gui through modular system
-		if((meta & 7) < 6 && !world.isRemote)
-			player.openGui(LibVulpes.instance, GuiHandler.guiId.MODULAR.ordinal(), world, x, y, z);
+		//Do some fancy fluid stuff
+		//This code is modified from the Forge fluid handler that does both actions at once, as we want only one that corresponds to the correct hatch type
+		if (FluidUtils.containsFluid(playerIn.getHeldItem(hand)) && tile instanceof TileFluidHatch) {
+			IItemHandler playerInventory = playerIn.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null);
+			if (((TileFluidHatch)tile).isOutputOnly()) {
+				FluidActionResult fluidActionResult = FluidUtil.tryFillContainerAndStow(heldItem, ((TileFluidHatch)tile).getFluidTank(), playerInventory, Integer.MAX_VALUE, playerIn, true);
+				if (fluidActionResult.isSuccess())
+				    playerIn.setHeldItem(hand, fluidActionResult.getResult());
+			} else {
+				FluidActionResult fluidActionResult = FluidUtil.tryEmptyContainerAndStow(heldItem, ((TileFluidHatch)tile).getFluidTank(), playerInventory, Integer.MAX_VALUE, playerIn, true);
+				if (fluidActionResult.isSuccess())
+					playerIn.setHeldItem(hand, fluidActionResult.getResult());
+			}
+
+		}
+		//Handle gui through modular system
+		 else if((meta & 7) < 8 && !worldIn.isRemote)
+			playerIn.openGui(LibVulpes.instance, GuiHandler.guiId.MODULAR.ordinal(), worldIn, pos.getX(), pos.getY(), pos.getZ());
 
 		return true;
 	}

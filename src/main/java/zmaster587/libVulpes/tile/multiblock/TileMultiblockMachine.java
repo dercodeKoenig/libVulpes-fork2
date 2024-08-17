@@ -1,28 +1,30 @@
 package zmaster587.libVulpes.tile.multiblock;
 
 import io.netty.buffer.ByteBuf;
-
-import java.util.LinkedList;
-import java.util.List;
-
-import cpw.mods.fml.relauncher.Side;
-import zmaster587.libVulpes.interfaces.IRecipe;
-import zmaster587.libVulpes.recipe.RecipesMachine;
-import zmaster587.libVulpes.util.ZUtils;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.network.NetworkManager;
-import net.minecraft.network.Packet;
-import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.network.play.server.SPacketUpdateTileEntity;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.SoundEvent;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.IFluidHandler;
+import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.oredict.OreDictionary;
+import zmaster587.libVulpes.interfaces.IRecipe;
+import zmaster587.libVulpes.network.PacketHandler;
+import zmaster587.libVulpes.network.PacketMachine;
+import zmaster587.libVulpes.recipe.RecipesMachine;
+import zmaster587.libVulpes.util.IFluidHandlerInternal;
+import zmaster587.libVulpes.util.ZUtils;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 
@@ -31,92 +33,119 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 		POWERERROR
 	}
 
+	private List<ItemStack> inputItemStacks;
 	private List<ItemStack> outputItemStacks;
 	private List<FluidStack> outputFluidStacks;
 
-	boolean smartInventoryUpgrade = true;
+	private boolean smartInventoryUpgrade = true;
 	//When using smart inventories sometimes setInventory content calls need to be made
 	//This flag prevents infinite recursion by having a value of true if any invCheck has started
-	boolean invCheckFlag = false;
+	private boolean invCheckFlag = false;
 
 	public TileMultiblockMachine() {
 		super();
 		outputItemStacks = null;
 	}
 
+	public List<ItemStack> getInputs() {
+		return inputItemStacks;
+	}
+
 	public List<ItemStack> getOutputs() {
 		return outputItemStacks;
 	}
+	
+	public void setOutputs(List<ItemStack> stack) {
+		outputItemStacks = stack;
+	}
+	
+	public void setOutputFluids(List<FluidStack> stack) {
+		outputFluidStacks = stack;
+	}
 
 	@Override
-	public Packet getDescriptionPacket() {
+	public SPacketUpdateTileEntity getUpdatePacket() {
 		NBTTagCompound nbt = new NBTTagCompound();
 
 		writeToNBT(nbt);
 		nbt.setBoolean("built", canRender);
 		nbt.setBoolean("hadPowerLastTick", hadPowerLastTick);
-		return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, 0, nbt);
+		return new SPacketUpdateTileEntity(pos, 0, nbt);
+	}
+	
+	
+	@Override
+	public NBTTagCompound getUpdateTag() {
+		NBTTagCompound nbt = writeToNBT(new NBTTagCompound());
+		nbt.setBoolean("built", canRender);
+		nbt.setBoolean("hadPowerLastTick", hadPowerLastTick);
+		return nbt;
+	}
+	
+	@Override
+	public void handleUpdateTag(NBTTagCompound nbt) {
+		super.handleUpdateTag(nbt);
+		canRender = nbt.getBoolean("built");
+		hadPowerLastTick = nbt.getBoolean("hadPowerLastTick");
 	}
 
 	@Override
-	public void onDataPacket(NetworkManager net, S35PacketUpdateTileEntity pkt) {
-		NBTTagCompound nbt = pkt.func_148857_g();
+	public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity pkt) {
+		NBTTagCompound nbt = pkt.getNbtCompound();
 		canRender = nbt.getBoolean("built");
 		hadPowerLastTick = nbt.getBoolean("hadPowerLastTick");
 		readFromNBT(nbt);
 	}
 
-	@Override
-	public boolean canUpdate() {
-		return true;
+	public void registerRecipes() {
+		
 	}
-
+	
 	@Override
-	public void updateEntity() {
-		//super.updateEntity();
+	public void update() {
+		//super.update();
 
-		//Freaky jenky crap to make sure the multiblock loads on chunkload etc
-		if(timeAlive == 0) {
-			if(!worldObj.isRemote) {
-				if(isComplete())
-					canRender = completeStructure = completeStructure();
-				onCreated();
-			}
-			else {
-				ResourceLocation str = getSound();
-				if(str != null)
-					playMachineSound(getSound());
+		//Freaky janky crap to make sure the multiblock loads on chunkload etc
+		if (timeAlive == 0) {
+			if (!world.isRemote) {
+				if (isComplete())
+					canRender = completeStructure = completeStructure(world.getBlockState(pos));
+			} else {
+				/*
+				SoundEvent str;
+				if((str = getSound()) != null) {
+					playMachineSound(str);
+				}
+				 */
 			}
 
 			timeAlive = 0x1;
 		}
 
 		//In case the machine jams for some reason
-		if(!isRunning() && worldObj.getTotalWorldTime() % 1000L == 0)
+		if (!isRunning() && world.getTotalWorldTime() % 1000L == 0)
 			onInventoryUpdated();
 
-		if(isRunning()) {
-			if( hasEnergy(powerPerTick) || (worldObj.isRemote && hadPowerLastTick)) {
+		if (isRunning()) {
+			if ((!world.isRemote && hasEnergy(powerPerTick)) || (world.isRemote && hadPowerLastTick)) {
 
 				//Increment for both client and server
 				onRunningPoweredTick();
-				
 				//If server then check to see if we need to update the client, use power and process output if applicable
-				if(!worldObj.isRemote) {
+				if (!world.isRemote) {
 
-					if(!hadPowerLastTick) {
+					if (!hadPowerLastTick) {
 						hadPowerLastTick = true;
 						markDirty();
-						worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+						PacketHandler.sendToNearby(new PacketMachine(this, (byte) NetworkPackets.POWERERROR.ordinal()), this.world.provider.getDimension(), this.pos.getX(), this.pos.getY(), this.pos.getZ(), 256.0);
+						world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 					}
-
-					useEnergy(powerPerTick);
 				}
-			}
-			else if(!worldObj.isRemote && hadPowerLastTick) { //If server and out of power check to see if client needs update
+			} else if (!world.isRemote && hadPowerLastTick) { //If server and out of power check to see if client needs update
 				hadPowerLastTick = false;
 				markDirty();
-				worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+				PacketHandler.sendToNearby(new PacketMachine(this, (byte) NetworkPackets.POWERERROR.ordinal()), this.world.provider.getDimension(), this.pos.getX(), this.pos.getY(), this.pos.getZ(), 256.0);
+				world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
 			}
 		}
 	}
@@ -135,48 +164,48 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 
 	/**
 	 * @param world world
-	 * @param destroyedX x coord of destroyed block
-	 * @param destroyedY y coord of destroyed block
-	 * @param destroyedZ z coord of destroyed block
+	 * @param destroyedPos coords of destroyed block
 	 * @param blockBroken set true if the block is being broken, otherwise some other means is being used to disassemble the machine
 	 */
-	public void deconstructMultiBlock(World world, int destroyedX, int destroyedY, int destroyedZ, boolean blockBroken) {
+	@Override
+	public void deconstructMultiBlock(World world, BlockPos destroyedPos, boolean blockBroken, IBlockState state) {
 		outputItemStacks = null;
 		outputFluidStacks = null;
-		super.deconstructMultiBlock(world, destroyedX, destroyedY, destroyedZ, blockBroken);
+		super.deconstructMultiBlock(world, destroyedPos, blockBroken, state);
 	}
 
 	protected void processComplete() {
 		completionTime = 0;
 		currentTime = 0;
-		if(!worldObj.isRemote)
+		if(!world.isRemote)
 			dumpOutputToInventory();
 
+		inputItemStacks = null;
 		outputItemStacks = null;
 		outputFluidStacks = null;
 
 		onInventoryUpdated();
 
 		this.markDirty();
-		worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+		world.notifyBlockUpdate(pos, world.getBlockState(pos),  world.getBlockState(pos), 3);
 	}
 
 	//When the output of the recipe is dumped to the inventory
 	protected void dumpOutputToInventory() {
 
 		int totalItems = 0;
-		for(IInventory outInventory : itemOutPorts) {
+		for(IInventory outInventory : getItemOutPorts()) {
 			for(int i = totalItems; i < outputItemStacks.size(); i++) {
 				ItemStack stack = outInventory.getStackInSlot(smartInventoryUpgrade ? outInventory.getSizeInventory() - i - 1 : i);
 
-				if(stack == null) {
+				if(stack.isEmpty()) {
 					outInventory.setInventorySlotContents(smartInventoryUpgrade ? outInventory.getSizeInventory() - i - 1 : i, outputItemStacks.get(i));
 					outInventory.markDirty();
 					totalItems++;
 				}
 				else if(stack.isItemEqual(outputItemStacks.get(i)) && 
-						(stack.stackSize + outputItemStacks.get(i).stackSize <= outInventory.getInventoryStackLimit() && stack.stackSize + outputItemStacks.get(i).stackSize <= stack.getMaxStackSize())) {
-					outInventory.getStackInSlot(smartInventoryUpgrade ? outInventory.getSizeInventory() - i - 1 : i).stackSize += outputItemStacks.get(i).stackSize;
+						(stack.getCount() + outputItemStacks.get(i).getCount() <= outInventory.getInventoryStackLimit() && stack.getCount() + outputItemStacks.get(i).getCount() <= stack.getMaxStackSize())) {
+					outInventory.getStackInSlot(smartInventoryUpgrade ? outInventory.getSizeInventory() - i - 1 : i).setCount(outInventory.getStackInSlot(smartInventoryUpgrade ? outInventory.getSizeInventory() - i - 1 : i).getCount() + outputItemStacks.get(i).getCount());
 					outInventory.markDirty();
 					totalItems++;
 				}
@@ -185,7 +214,7 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 
 		//Handle fluids
 		for(int i = 0; i < outputFluidStacks.size() ; i++) {
-			fluidOutPorts.get(i).fill(ForgeDirection.UNKNOWN, outputFluidStacks.get(i), true);
+			fluidOutPorts.get(i).fillInternal(outputFluidStacks.get(i), true);
 		}
 	}
 
@@ -222,27 +251,26 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 
 
 	public void consumeItems(IRecipe recipe) {
-		LinkedList<LinkedList<ItemStack>> ingredients = recipe.getIngredients();
+		List<List<ItemStack>> ingredients = recipe.getIngredients();
 
-		for(int ingredientNum = 0;ingredientNum < ingredients.size(); ingredientNum++) {
-
-			LinkedList<ItemStack> ingredient = ingredients.get(ingredientNum);
+		for (List<ItemStack> ingredient : ingredients) {
 
 			ingredientCheck:
 
-				for(IInventory hatch : itemInPorts) {
-					for(int i = 0; i < hatch.getSizeInventory(); i++) {
-						ItemStack stackInSlot = hatch.getStackInSlot(i);
+			for (IInventory hatch : getItemInPorts()) {
+				for (int i = 0; i < hatch.getSizeInventory(); i++) {
+					ItemStack stackInSlot = hatch.getStackInSlot(i);
 
-						for (ItemStack stack : ingredient) {
-							if(stackInSlot != null && stackInSlot.stackSize >= stack.stackSize && stackInSlot.isItemEqual(stack)) {
-								hatch.decrStackSize(i, stack.stackSize);
-								hatch.markDirty();
-								break ingredientCheck;
-							}
+					for (ItemStack stack : ingredient) {
+						if (!stackInSlot.isEmpty() && stackInSlot.getCount() >= stack.getCount() && (stackInSlot.isItemEqual(stack) || (stack.getItemDamage() == OreDictionary.WILDCARD_VALUE && stackInSlot.getItem() == stack.getItem()))) {
+							hatch.decrStackSize(i, stack.getCount());
+							hatch.markDirty();
+							world.notifyBlockUpdate(pos, world.getBlockState(((TileEntity) hatch).getPos()), world.getBlockState(((TileEntity) hatch).getPos()), 6);
+							break ingredientCheck;
 						}
 					}
 				}
+			}
 		}
 
 
@@ -254,13 +282,13 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 		}
 
 		//Drain Fluid containers
-		for(IFluidHandler fluidInput : fluidInPorts) {
+		for(IFluidHandlerInternal fluidInput : fluidInPorts) {
 			for(int i = 0; i < recipe.getFluidIngredients().size(); i++) {
 				FluidStack fluidStack = recipe.getFluidIngredients().get(i).copy();
 				fluidStack.amount = fluidInputCounter[i];
 
 				FluidStack drainedFluid;
-				drainedFluid = fluidInput.drain(ForgeDirection.UNKNOWN, recipe.getFluidIngredients().get(i), true);
+				drainedFluid = fluidInput.drainInternal(recipe.getFluidIngredients().get(i), true);
 
 				if(drainedFluid != null)
 					fluidInputCounter[i] -= drainedFluid.amount;
@@ -276,12 +304,16 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 			return false;
 
 		invCheckFlag = true;
+		int reservedSpotSize = 0;
+		if(recipe instanceof RecipesMachine.Recipe)
+			reservedSpotSize = ((RecipesMachine.Recipe)recipe).getRequiredEmptyOutputs();
+		
 		List<ItemStack> outputItems = getItemOutputs(recipe);
 
 		boolean itemCheck = outputItems.size() == 0;
 
 
-		LinkedList<LinkedList<ItemStack>> ingredients = recipe.getIngredients();
+		List<List<ItemStack>> ingredients = recipe.getIngredients();
 		short mask = 0x0;
 		recipeCheck:
 
@@ -290,13 +322,13 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 				List<ItemStack> ingredient = ingredients.get(ingredientNum);
 				ingredientCheck:
 
-					for(IInventory hatch : itemInPorts) {
+					for(IInventory hatch : getItemInPorts()) {
 
 						for(int i = 0; i < hatch.getSizeInventory(); i++) {
 							ItemStack stackInSlot = hatch.getStackInSlot(i);
 
 							for(ItemStack stack : ingredient) {
-								if(stackInSlot != null && stackInSlot.stackSize >= stack.stackSize && (stackInSlot.isItemEqual(stack) || (stack.getItemDamage() == OreDictionary.WILDCARD_VALUE && stack.getItem() == stackInSlot.getItem()))) {
+								if(stackInSlot != ItemStack.EMPTY && stackInSlot.getCount() >= stack.getCount() && (stackInSlot.isItemEqual(stack) || (stack.getItemDamage() == OreDictionary.WILDCARD_VALUE && stack.getItem() == stackInSlot.getItem()))) {
 									mask |= (1 << ingredientNum);
 									break ingredientCheck;
 								}
@@ -315,9 +347,15 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 		}
 
 
+		if(reservedSpotSize < 0)
+		{
 		//Check output Items
 		bottomItemCheck:
-			for(IInventory outInventory : itemOutPorts) {
+			for(IInventory outInventory : getItemOutPorts()) {
+				//It's possible for the outputItems to be bigger than the inventory
+				if(outInventory.getSizeInventory() - outputItems.size() < 0)
+					continue;
+				
 				for(int i = smartInventoryUpgrade ? outInventory.getSizeInventory() - outputItems.size() : 0; (i < (smartInventoryUpgrade ? outInventory.getSizeInventory() : outputItems.size())); i++) {
 					ItemStack stack = outInventory.getStackInSlot(i);
 
@@ -325,20 +363,30 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 						ItemStack outputItem = outputItems.get(outInventory.getSizeInventory() - i - 1);
 
 
+						boolean allIngredFit = true;
+						for(int k = 0; k < outputItems.size() && i - k >= 0; k++) {
+							ItemStack stack2 = outInventory.getStackInSlot(outInventory.getSizeInventory()-k-1);
+							ItemStack outputItem2  = outputItems.get(k);
+							allIngredFit = stack2.isEmpty() || (stack2.isItemEqual(outputItem2) && stack2.getCount() + outputItem2.getCount() <= outInventory.getInventoryStackLimit() && stack2.getCount() + outputItem2.getCount() <= stack.getMaxStackSize());
+							
+							if(!allIngredFit) break;
+						}
+						
 						//stack cannot be null when assigning flag
-						if(stack == null || stack.isItemEqual(outputItem) && 
-								(stack.stackSize + outputItem.stackSize <= outInventory.getInventoryStackLimit() && stack.stackSize + outputItem.stackSize <= stack.getMaxStackSize())) {
+						if(allIngredFit) {
+							
+							//Check all the slots
 							invCheckFlag = false;
 							itemCheck = true;
 							break bottomItemCheck;
 						}
 
-						if(stack != null && ZUtils.getFirstFilledSlotIndex(outInventory) >= outputItems.size()) {
+						if(stack != ItemStack.EMPTY && ZUtils.getFirstFilledSlotIndex(outInventory) >= outputItems.size()) {
 							//Range Check
 							int outputSize = outputItems.size();
 							int j;
 							for(j = 0; j < outputSize; j++) {
-								if(outInventory.getStackInSlot(j) != null) {
+								if(outInventory.getStackInSlot(j) != ItemStack.EMPTY) {
 									invCheckFlag = false;
 									itemCheck = false;
 									break bottomItemCheck;
@@ -348,10 +396,10 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 							int numExtraMoves = outInventory.getSizeInventory() - ZUtils.getFirstFilledSlotIndex(outInventory) - 1;
 
 							//J will be last slot in index by now
-							for(j = j + numExtraMoves - 1; j >= 0; j--) {
-								int slot = outInventory.getSizeInventory() - 1;
-								outInventory.setInventorySlotContents(slot - j - outputItems.size(), outInventory.getStackInSlot(slot - j));
-								outInventory.setInventorySlotContents(slot - j, null);
+							for(j = outInventory.getSizeInventory() - outputSize; j > 0; j--) {
+								int slot = outInventory.getSizeInventory();
+								outInventory.setInventorySlotContents(slot - j - outputSize, outInventory.getStackInSlot(slot - j));
+								outInventory.setInventorySlotContents(slot - j, ItemStack.EMPTY);
 							}
 
 							invCheckFlag = false;
@@ -359,21 +407,34 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 							break bottomItemCheck;
 						}
 					}
-					else if(stack == null || stack.isItemEqual(outputItems.get(i)) && 
-							(stack.stackSize + outputItems.get(i).stackSize <= outInventory.getInventoryStackLimit() && stack.stackSize + outputItems.get(i).stackSize <= stack.getMaxStackSize())) {
+					else if(stack == ItemStack.EMPTY || stack.isItemEqual(outputItems.get(i)) && 
+							(stack.getCount() + outputItems.get(i).getCount() <= outInventory.getInventoryStackLimit() && stack.getCount() + outputItems.get(i).getCount() <= stack.getMaxStackSize())) {
 						itemCheck = true;
 						break bottomItemCheck;
 					}
 
 				}
 			}
+		}
+		else //Chance output
+		{
+			for(IInventory outInventory : getItemOutPorts()) {
+				for(int i = 0; i < outInventory.getSizeInventory(); i++) {
+					if(outInventory.getStackInSlot(i).isEmpty())
+						reservedSpotSize--;
+				}
+			}
+			
+			if(reservedSpotSize <= 0)
+				itemCheck = true;
+		}
 
 		int[] fluidInputCounter = new int[recipe.getFluidIngredients().size()];
 
 		//Populate Fluid Counters
-		for(IFluidHandler fluidInput : fluidInPorts) {
+		for(IFluidHandlerInternal fluidInput : fluidInPorts) {
 			for(int i = 0; i < recipe.getFluidIngredients().size(); i++) {
-				FluidStack fluidStack = fluidInput.drain(ForgeDirection.UNKNOWN, recipe.getFluidIngredients().get(i), false);
+				FluidStack fluidStack = fluidInput.drainInternal(recipe.getFluidIngredients().get(i), false);
 
 				if(fluidStack != null)
 					fluidInputCounter[i] += fluidStack.amount;
@@ -401,11 +462,11 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 
 		//Populate Fluid Counters
 		for(int i = 0; i < recipe.getFluidOutputs().size(); i++) {
-			fluidOutputCounter[i] -= fluidOutPorts.get(i).fill(ForgeDirection.UNKNOWN, recipe.getFluidOutputs().get(i), false);
+			fluidOutputCounter[i] -= fluidOutPorts.get(i).fillInternal(recipe.getFluidOutputs().get(i), false);
 		}
 
-		for(int i = 0; i < fluidOutputCounter.length; i++)
-			if(fluidOutputCounter[i] > 0 )
+		for (int value : fluidOutputCounter)
+			if (value > 0)
 				return false;
 
 		return itemCheck;
@@ -424,7 +485,7 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 	//Must be overridden or an NPE will occur
 	public List<IRecipe> getMachineRecipeList() {
 		List<IRecipe> list = RecipesMachine.getInstance().getRecipes(this.getClass());
-		return list != null ? list : new LinkedList<IRecipe>();
+		return (list != null) ? list : new LinkedList<>();
 	}
 
 	//Called by inventory blocks that are part of the structure
@@ -433,18 +494,29 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 	public void onInventoryUpdated() {
 		//If we are already processing something don't bother
 
-		if(!invCheckFlag && outputItemStacks == null && outputFluidStacks == null) {
+		if(!invCheckFlag && outputItemStacks == null && (outputFluidStacks == null || outputFluidStacks.isEmpty())) {
 			IRecipe recipe;
 
 			if(enabled && (recipe = getRecipe(getMachineRecipeList())) != null && canProcessRecipe(recipe)) {
 				consumeItems(recipe);
 				powerPerTick = (int)Math.ceil((getPowerMultiplierForRecipe(recipe)*recipe.getPower()));
-				completionTime = (int)(getTimeMultiplierForRecipe(recipe)*recipe.getTime());
+				completionTime = Math.max((int)(getTimeMultiplierForRecipe(recipe)*recipe.getTime()), 1);
 				outputItemStacks = recipe.getOutput();
 				outputFluidStacks = recipe.getFluidOutputs();
 
+				List<List<ItemStack>> ingredients = recipe.getIngredients();
+				for (List<ItemStack> ingredient : ingredients) {
+					if (inputItemStacks == null)
+						inputItemStacks = new LinkedList<>(ingredient);
+					else
+						inputItemStacks.addAll(ingredient);
+				}
+
+
+
+
 				markDirty();
-				worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+				world.notifyBlockUpdate(pos, world.getBlockState(pos),  world.getBlockState(pos), 3);
 
 				setMachineRunning(true); //turn on machine
 
@@ -456,7 +528,7 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 	}
 
 	protected float getTimeMultiplierForRecipe(IRecipe recipe) {
-		return 1f;
+		return getTimeMultiplier();
 	}
 
 	protected float getPowerMultiplierForRecipe(IRecipe recipe) {
@@ -464,14 +536,14 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 	}
 
 	@Override
-	public void writeToNBT(NBTTagCompound nbt) {
+	public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
 		super.writeToNBT(nbt);
 
 		//Save output items if applicable
 		if(outputItemStacks != null) {
 			NBTTagList list = new NBTTagList();
 			for(ItemStack stack : outputItemStacks) {
-				if(stack != null) {
+				if(!stack.isEmpty()) {
 					NBTTagCompound tag = new NBTTagCompound();
 					stack.writeToNBT(tag);
 					list.appendTag(tag);
@@ -480,17 +552,31 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 			nbt.setTag("outputItems", list);
 		}
 
-		if(outputFluidStacks != null) {
+		//Save input items if applicable
+		if(inputItemStacks != null) {
 			NBTTagList list = new NBTTagList();
-			for(FluidStack stack : outputFluidStacks) {
-				if(stack != null) {
+			for(ItemStack stack : inputItemStacks) {
+				if(!stack.isEmpty()) {
 					NBTTagCompound tag = new NBTTagCompound();
 					stack.writeToNBT(tag);
 					list.appendTag(tag);
 				}
 			}
+			nbt.setTag("inputItems", list);
+		}
+
+		if(outputFluidStacks != null) {
+			NBTTagList list = new NBTTagList();
+			for(FluidStack fStack : outputFluidStacks) {
+				if(fStack != null) {
+					NBTTagCompound tag = new NBTTagCompound();
+					fStack.writeToNBT(tag);
+					list.appendTag(tag);
+				}
+			}
 			nbt.setTag("outputFluids", list);
 		}
+		return nbt;
 	}
 
 	@Override
@@ -499,19 +585,31 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 
 		//Load output items being processed if applicable
 		if(nbt.hasKey("outputItems")) {
-			outputItemStacks = new LinkedList<ItemStack>();
+			outputItemStacks = new LinkedList<>();
 			NBTTagList list = nbt.getTagList("outputItems", 10);
 
 			for(int i = 0; i < list.tagCount(); i++) {
 				NBTTagCompound tag = list.getCompoundTagAt(i);
 
-				outputItemStacks.add(ItemStack.loadItemStackFromNBT(tag));
+				outputItemStacks.add(new ItemStack(tag));
+			}
+		}
+
+		//Load input items being processed if applicable
+		if(nbt.hasKey("inputItems")) {
+			inputItemStacks = new LinkedList<>();
+			NBTTagList list = nbt.getTagList("inputItems", 10);
+
+			for(int i = 0; i < list.tagCount(); i++) {
+				NBTTagCompound tag = list.getCompoundTagAt(i);
+
+				inputItemStacks.add(new ItemStack(tag));
 			}
 		}
 
 		//Load output fluids being processed if applicable
 		if(nbt.hasKey("outputFluids")) {
-			outputFluidStacks = new LinkedList<FluidStack>();
+			outputFluidStacks = new LinkedList<>();
 			NBTTagList list = nbt.getTagList("outputFluids", 10);
 
 			for(int i = 0; i < list.tagCount(); i++) {
@@ -522,7 +620,7 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 	}
 
 	public boolean attemptCompleteStructure() {
-		boolean completeStructure = super.attemptCompleteStructure();
+		boolean completeStructure = super.attemptCompleteStructure(world.getBlockState(pos));
 		if(completeStructure)
 			onInventoryUpdated();
 

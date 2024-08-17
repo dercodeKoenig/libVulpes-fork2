@@ -14,6 +14,7 @@ tile.coil=Bobina
 tile.Copper.name=Mena de cobre
 tile.Tin.name=Mena de estaño
 tile.Rutile.name=Mena de rutilo
+tile.motor.name=Motor
 
 
 item.holoProjector.name=Proyector de hologramas
@@ -27,7 +28,7 @@ material.Steel.name=Acero
 material.Titanium.name=Titanio
 material.Rutile.name=Rutilo
 
-type.crystal.name=Cristal
+type.gem.name=Cristal
 type.dust.name=Polvo
 type.boule.name=Boulé
 type.ingot.name=Lingote

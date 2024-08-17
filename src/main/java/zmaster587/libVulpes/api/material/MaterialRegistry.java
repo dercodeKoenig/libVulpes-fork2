@@ -1,39 +1,46 @@
 package zmaster587.libVulpes.api.material;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-
-import cpw.mods.fml.common.registry.GameRegistry;
-import zmaster587.libVulpes.api.LibVulpesItems;
-import zmaster587.libVulpes.block.BlockCoil;
-import zmaster587.libVulpes.block.BlockMetalBlock;
+import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.client.renderer.color.IBlockColor;
+import net.minecraft.client.renderer.color.IItemColor;
+import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.oredict.OreDictionary;
+import zmaster587.libVulpes.api.LibVulpesBlocks;
 import zmaster587.libVulpes.block.BlockOre;
 import zmaster587.libVulpes.items.ItemOre;
 import zmaster587.libVulpes.items.ItemOreProduct;
 import zmaster587.libVulpes.util.ItemStackMapping;
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.oredict.OreDictionary;
+import zmaster587.libVulpes.util.OreProductColorizer;
+
+import javax.annotation.Nonnull;
+import java.util.*;
 
 public class MaterialRegistry {
 
-	static HashMap<Object, MixedMaterial> mixedMaterialList = new HashMap<Object, MixedMaterial>();
+	static HashMap<Object, MixedMaterial> mixedMaterialList = new HashMap<>();
 	static HashMap<AllowedProducts, List<Block>> productBlockListMapping;
-	static List<MaterialRegistry> registries = new LinkedList<MaterialRegistry>();
+	static List<MaterialRegistry> registries = new LinkedList<>();
 
-	public HashMap<String, zmaster587.libVulpes.api.material.Material> strToMaterial = new HashMap<String, zmaster587.libVulpes.api.material.Material>();
-	public List<zmaster587.libVulpes.api.material.Material> materialList = new LinkedList<zmaster587.libVulpes.api.material.Material>();
+	@SideOnly(Side.CLIENT)
+	static Object oreProductColorizer;
+
+	public HashMap<String, zmaster587.libVulpes.api.material.Material> strToMaterial = new HashMap<>();
+	public List<zmaster587.libVulpes.api.material.Material> materialList = new LinkedList<>();
 	public Item[] oreProducts;
 
 
 	public MaterialRegistry() {
-		productBlockListMapping = new HashMap<AllowedProducts, List<Block>>();
+		productBlockListMapping = new HashMap<>();
 		registries.add(this);
 	}
 
@@ -44,8 +51,37 @@ public class MaterialRegistry {
 		materialList.add(material);
 	}
 
+	@SideOnly(Side.CLIENT)
+	public void init() {
+		if(oreProductColorizer == null)
+			oreProductColorizer = new OreProductColorizer();
+		//register color handles
+		for(Block block : getBlockListForProduct(AllowedProducts.getProductByName("BLOCK"))) {
+			if(block == null ||  Item.getItemFromBlock(block) == null)
+				continue;
+			Minecraft.getMinecraft().getBlockColors().registerBlockColorHandler((IBlockColor)oreProductColorizer, block);
+			Minecraft.getMinecraft().getItemColors().registerItemColorHandler((IItemColor)oreProductColorizer,  Item.getItemFromBlock(block));
+		}
+
+
+		for(Block block : getBlockListForProduct(AllowedProducts.getProductByName("COIL"))) {
+			if(block == null ||  Item.getItemFromBlock(block) == null)
+				continue;
+			Minecraft.getMinecraft().getBlockColors().registerBlockColorHandler((IBlockColor)oreProductColorizer, block);
+			Minecraft.getMinecraft().getItemColors().registerItemColorHandler((IItemColor)oreProductColorizer, Item.getItemFromBlock(block));
+		}
+
+		for(int i = 0; i < AllowedProducts.getAllAllowedProducts().size(); i++) {
+			if(!AllowedProducts.getAllAllowedProducts().get(i).isBlock()) {
+				Minecraft.getMinecraft().getItemColors().registerItemColorHandler((OreProductColorizer)oreProductColorizer, oreProducts[i]);
+			}
+		}
+
+		//getBlockListForProduct(AllowedProducts.getProductByName("ORE"))
+	}
+
 	//TODO: allow more block types
-	public void registerOres(CreativeTabs tab, String nameSpace) {
+	public void registerOres(CreativeTabs tab) {
 		int len = materialList.size();
 		int numberOfOreBlocks = (len/16) + 1;
 		BlockOre ores;
@@ -60,7 +96,8 @@ public class MaterialRegistry {
 
 			if(!allAllowedProducts.get(i).isBlock()) {
 				oreProducts[i] = new ItemOreProduct(allAllowedProducts.get(i).name().toLowerCase(Locale.ENGLISH)).setCreativeTab(tab);
-				GameRegistry.registerItem(oreProducts[i], nameSpace + "product" + allAllowedProducts.get(i).getName().toLowerCase(Locale.ENGLISH));
+				LibVulpesBlocks.registerItem(oreProducts[i].setRegistryName("product" + allAllowedProducts.get(i).getName().toLowerCase(Locale.ENGLISH)));
+				//GameRegistry.registerItem(oreProducts[i], "product" + allAllowedProducts.get(i).getName().toLowerCase(Locale.ENGLISH));
 			}
 		}
 
@@ -76,59 +113,91 @@ public class MaterialRegistry {
 			if(!coilAllowed)
 				coilAllowed = AllowedProducts.getProductByName("COIL").isOfType(mat.getAllowedProducts());
 		}
+
 		for(int i = 0; i < numberOfOreBlocks; i++) {
 
 			String name = "ore";
 			String metalBlockName = "metal";
 			String coilName = "coil";
 
-			metalBlocks = new BlockMetalBlock(Material.rock);
-			metalBlocks.setBlockName(metalBlockName).setCreativeTab(tab).setHardness(4f).setBlockTextureName("block");
+			metalBlocks = new BlockOre(Material.ROCK);
+			metalBlocks.setUnlocalizedName(metalBlockName).setCreativeTab(tab).setHardness(4f);
 			metalBlocks.numBlocks = (byte)Math.min(len - (16*i), 16);
 			metalBlocks.product = AllowedProducts.getProductByName("BLOCK");
 
-			ores = new BlockOre(Material.rock);
-			ores.setBlockName(name).setCreativeTab(tab).setHardness(4f).setBlockTextureName("ore");
+			ores = new BlockOre(Material.ROCK);
+			ores.setUnlocalizedName(name).setCreativeTab(tab).setHardness(4f);
 			ores.numBlocks = (byte)Math.min(len - (16*i), 16);
 			ores.product = AllowedProducts.getProductByName("ORE");
 
-			coilBlocks = new BlockCoil(Material.rock, "libvulpes:coilSide", "libvulpes:coilPole");
-			coilBlocks.setBlockName(coilName).setCreativeTab(tab).setHardness(4f).setBlockTextureName("coil");
+			coilBlocks = new BlockOre(Material.ROCK);
+			coilBlocks.setUnlocalizedName(coilName).setCreativeTab(tab).setHardness(4f);
 			coilBlocks.numBlocks = (byte)Math.min(len - (16*i), 16);
 			coilBlocks.product = AllowedProducts.getProductByName("COIL");
 
+			ores.setRegistryName(name + i);
+			metalBlocks.setRegistryName(metalBlockName + i);
+			coilBlocks.setRegistryName(coilName + i);
+
 			if(oreAllowed)
-				GameRegistry.registerBlock(ores, ItemOre.class, nameSpace + name + i);
+				LibVulpesBlocks.registerBlock(ores, ItemOre.class, false);
 			if(blockAllowed)
-				GameRegistry.registerBlock(metalBlocks, ItemOre.class, nameSpace + metalBlockName + i);
+				LibVulpesBlocks.registerBlock(metalBlocks, ItemOre.class, false);
 			if(coilAllowed)
-				GameRegistry.registerBlock(coilBlocks, ItemOre.class, nameSpace + coilName + i);
+				LibVulpesBlocks.registerBlock(coilBlocks, ItemOre.class, false);
 
 			for(int j = 0; j < 16 && j < 16*i + (len % 16); j++) {
 				int index = i*16 + j;
 				zmaster587.libVulpes.api.material.Material ore = materialList.get(index);
 
 				ores.ores[j] = ore;
-				ores.setHarvestLevel(ore.getTool(), ore.getHarvestLevel(), j);
+				ores.setHarvestLevel(ore.getTool(), ore.getHarvestLevel(), ores.getStateFromMeta(j));
 
 				metalBlocks.ores[j] = ore;
-				metalBlocks.setHarvestLevel(ore.getTool(), ore.getHarvestLevel(), j);
+				metalBlocks.setHarvestLevel(ore.getTool(), ore.getHarvestLevel(), ores.getStateFromMeta(j));
 
 				coilBlocks.ores[j] = ore;
-				coilBlocks.setHarvestLevel(ore.getTool(), ore.getHarvestLevel(), j);
+				coilBlocks.setHarvestLevel(ore.getTool(), ore.getHarvestLevel(), ores.getStateFromMeta(j));
 
 				for(AllowedProducts product : allAllowedProducts) {
 					if(!product.isBlock() && product.isOfType(ore.getAllowedProducts()))
 						((ItemOreProduct)oreProducts[product.ordinal()]).registerItem(index, ore);
 				}
 
-				for(String str : ore.getOreDictNames()) {
-					if(AllowedProducts.getProductByName("ORE").isOfType(ore.getAllowedProducts()))
-						OreDictionary.registerOre("ore" + str, new ItemStack(ores, 1 , j));
-					if(AllowedProducts.getProductByName("BLOCK").isOfType(ore.getAllowedProducts()))
-						OreDictionary.registerOre("block" + str, new ItemStack(metalBlocks, 1 , j));
-					if(AllowedProducts.getProductByName("COIL").isOfType(ore.getAllowedProducts()))
-						OreDictionary.registerOre("coil" + str, new ItemStack(coilBlocks, 1 , j));
+				for(int g = 0; g < ore.getOreDictNames().length; g++) {
+					String str = ore.getOreDictNames()[g];
+					if(AllowedProducts.getProductByName("ORE").isOfType(ore.getAllowedProducts())) {
+						String oreName = "ore" + str;
+						OreDictionary.registerOre(oreName, new ItemStack(ores, 1 , j));
+
+						if(FMLCommonHandler.instance().getSide().isClient() && g == 0) {
+							oreName = Loader.instance().activeModContainer().getModId() + ":" + oreName;
+							Item itemBlock = Item.getItemFromBlock(ores);
+							ModelLoader.setCustomModelResourceLocation(itemBlock, j, new ModelResourceLocation(oreName, "inventory"));
+						}
+					}
+					if(AllowedProducts.getProductByName("BLOCK").isOfType(ore.getAllowedProducts())) {
+						String oreName = "block" + str;
+						OreDictionary.registerOre(oreName, new ItemStack(metalBlocks, 1 , j));
+
+
+						if(FMLCommonHandler.instance().getSide().isClient() && g == 0) {
+							oreName = Loader.instance().activeModContainer().getModId() + ":" + oreName;
+							Item itemBlock = Item.getItemFromBlock(metalBlocks);
+							ModelLoader.setCustomModelResourceLocation(itemBlock, j, new ModelResourceLocation(oreName, "inventory"));
+						}
+					}
+					if(AllowedProducts.getProductByName("COIL").isOfType(ore.getAllowedProducts())) {
+						String oreName = "coil" + str;
+						OreDictionary.registerOre(oreName, new ItemStack(coilBlocks, 1 , j));
+						OreDictionary.registerOre("blockCoil", new ItemStack(coilBlocks, 1 , j));
+						
+						if(FMLCommonHandler.instance().getSide().isClient() && g == 0) {
+							oreName = Loader.instance().activeModContainer().getModId() + ":" + oreName;
+							Item itemBlock = Item.getItemFromBlock(coilBlocks);
+							ModelLoader.setCustomModelResourceLocation(itemBlock, j, new ModelResourceLocation(oreName, "inventory"));
+						}
+					}
 				}
 			}
 
@@ -150,19 +219,18 @@ public class MaterialRegistry {
 		return null;
 	}
 
-	
 	/**
 	 * @param stack the item stack to get the material of
-	 * @return {@link Materials} of the itemstack if it exists, otherwise null
+	 * @return {@link zmaster587.libVulpes.api.material.Material} of the itemstack if it exists, otherwise null
 	 */
-	public static zmaster587.libVulpes.api.material.Material getMaterialFromItemStack(ItemStack stack) {
+	public static zmaster587.libVulpes.api.material.Material getMaterialFromItemStack(@Nonnull ItemStack stack) {
 		Item item = stack.getItem();
 
 		//If items is an itemOreProduct it must have been registered
 
 		for(MaterialRegistry  registry : registries) {
 			for(Item i : registry.oreProducts) {
-				if(item == i && i != null) {
+				if(item == i) {
 					return registry.materialList.get(stack.getItemDamage());
 				}
 			}
@@ -185,26 +253,28 @@ public class MaterialRegistry {
 	/**
 	 * @param material
 	 * @param product
-	 * @return an itemstack of size one containing the product with the given material, or null if one does not exist
+	 * @return an ItemStack of size one containing the product with the given material, or ItemStack.EMPTY if one does not exist
 	 */
-	public static ItemStack getItemStackFromMaterialAndType(String material,AllowedProducts product) {
+	@Nonnull
+	public static ItemStack getItemStackFromMaterialAndType(String material, AllowedProducts product) {
 		return getItemStackFromMaterialAndType(material, product,1);
 	}
 
 	/**
-	 * @param material
+	 * @param ore
 	 * @param product
 	 * @param amount stackSize
-	 * @return an itemstack of stackSize amount containing the product with the given material, or null if one does not exist
+	 * @return an ItemStack of stackSize amount containing the product with the given material, or ItemStack.EMPTY if one does not exist
 	 */
-	public static ItemStack getItemStackFromMaterialAndType(String ore,AllowedProducts product, int amount) {
+	@Nonnull
+	public static ItemStack getItemStackFromMaterialAndType(String ore, AllowedProducts product, int amount) {
 		for(MaterialRegistry  registry : registries) {
 			zmaster587.libVulpes.api.material.Material ore2 = registry.strToMaterial.get(ore);
 
 			if(ore2 != null && product != null)
 				return new ItemStack( registry.oreProducts[product.ordinal()], amount, ore2.index);
 		}
-		return null;
+		return ItemStack.EMPTY;
 	}
 
 	/**
@@ -212,17 +282,18 @@ public class MaterialRegistry {
 	 * @param material new mixed material to create
 	 */
 	public static void registerMixedMaterial(MixedMaterial material) {
-		if(material.getInput() instanceof ItemStack)
-			mixedMaterialList.put( new ItemStackMapping((ItemStack) material.getInput()), material);
+		Object inputObj = material.getInput();
+		if(inputObj instanceof ItemStack && !((ItemStack) inputObj).isEmpty())
+			mixedMaterialList.put( new ItemStackMapping((ItemStack) inputObj), material);
 		else
-			mixedMaterialList.put( material.getInput(), material);
+			mixedMaterialList.put(inputObj, material);
 	}
 
 	/**
 	 * @param stack
 	 * @return {@link MixedMaterial} that makes up the item, null if the item is not registered
 	 */
-	public MixedMaterial getMixedMaterial(ItemStack stack) {
+	public MixedMaterial getMixedMaterial(@Nonnull ItemStack stack) {
 		return mixedMaterialList.get(new ItemStackMapping(stack));
 	}
 
@@ -234,7 +305,7 @@ public class MaterialRegistry {
 		return mixedMaterialList.get(str);
 	}
 
-	public static int getColorFromItemMaterial(ItemStack stack) {
+	public static int getColorFromItemMaterial(@Nonnull ItemStack stack) {
 
 		zmaster587.libVulpes.api.material.Material material = getMaterialFromItemStack(stack);
 		if(material == null) {
@@ -288,7 +359,7 @@ public class MaterialRegistry {
 	}
 
 	public static List<zmaster587.libVulpes.api.material.Material> getAllMaterials() {
-		List<zmaster587.libVulpes.api.material.Material> list = new LinkedList<zmaster587.libVulpes.api.material.Material>();
+		List<zmaster587.libVulpes.api.material.Material> list = new LinkedList<>();
 		for(MaterialRegistry registry : registries) {
 			list.addAll(registry.materialList);
 		}

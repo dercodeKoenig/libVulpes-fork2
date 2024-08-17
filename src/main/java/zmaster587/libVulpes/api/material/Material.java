@@ -1,17 +1,11 @@
 package zmaster587.libVulpes.api.material;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-
-import zmaster587.libVulpes.api.LibVulpesBlocks;
-import zmaster587.libVulpes.api.LibVulpesItems;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.oredict.OreDictionary;
+
+import javax.annotation.Nonnull;
 
 public class Material {
 	String unlocalizedName, tool;
@@ -58,8 +52,9 @@ public class Material {
 	/**
 	 * @param product
 	 * @param amount
-	 * @return Itemstack representing the product of this material, or null if nonexistant
+	 * @return ItemStack representing the product of this material, or ItemStack.EMPTY if nonexistent
 	 */
+	@Nonnull
 	public ItemStack getProduct(AllowedProducts product, int amount) {
 		/*ItemStack stack = OreDictionary.getOres(product.getName() + this.name()).get(0);
 			stack = stack.copy();
@@ -68,23 +63,23 @@ public class Material {
 
 		if(isVanilla()) {
 			if(this.unlocalizedName.equals("Iron")) {
-				if(product.getName().equals("INGOT"))
-					return new ItemStack(Items.iron_ingot, amount);
-				else if(product.getName().equals("ORE")) {
-					return new ItemStack(Blocks.iron_ore, amount);
-				}
-				else if(product.getName().equals("BLOCK")) {
-					return new ItemStack(Blocks.iron_block, amount);
+				switch (product.getName()) {
+					case "INGOT":
+						return new ItemStack(Items.IRON_INGOT, amount);
+					case "ORE":
+						return new ItemStack(Blocks.IRON_ORE, amount);
+					case "BLOCK":
+						return new ItemStack(Blocks.IRON_BLOCK, amount);
 				}
 			}
 			if(this.unlocalizedName.equals("Gold")) {
-				if(product.getName().equals("INGOT"))
-					return new ItemStack(Items.gold_ingot, amount);
-				else if(product.getName().equals("ORE")) {
-					return new ItemStack(Blocks.gold_ore, amount);
-				}
-				else if(product.getName().equals("BLOCK")) {
-					return new ItemStack(Blocks.gold_block, amount);
+				switch (product.getName()) {
+					case "INGOT":
+						return new ItemStack(Items.GOLD_INGOT, amount);
+					case "ORE":
+						return new ItemStack(Blocks.GOLD_ORE, amount);
+					case "BLOCK":
+						return new ItemStack(Blocks.GOLD_BLOCK, amount);
 				}
 			}
 		}
@@ -93,12 +88,15 @@ public class Material {
 			return new ItemStack(registry.getBlockForProduct(product, this, index), amount, getMeta());
 		}
 		
+		
+		
 		return new ItemStack(registry.oreProducts[product.ordinal()], amount, getMeta());
 	}
 	/**
 	 * @param product
-	 * @return Itemstack of size 1 representing the product of this material, or null if nonexistant
+	 * @return ItemStack of size 1 representing the product of this material, or ItemStack.EMPTY if nonexistent
 	 */
+	@Nonnull
 	public ItemStack getProduct(AllowedProducts product) {
 		return getProduct(product,1);
 	}
@@ -163,7 +161,7 @@ public class Material {
 	/**
 	 * 
 	 * @param str 
-	 * @return the material corresponding to the string supplied or null if non existant
+	 * @return the material corresponding to the string supplied or null if nonexistent
 	 */
 	public static Material valueOfSafe(String str) {
 		try {

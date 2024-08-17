@@ -1,12 +1,11 @@
 package zmaster587.libVulpes.tile.multiblock.hatch;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import zmaster587.libVulpes.inventory.modules.ModuleBase;
 import zmaster587.libVulpes.inventory.modules.ModuleOutputSlotArray;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public class TileOutputHatch extends TileInventoryHatch {
 
@@ -18,6 +17,15 @@ public class TileOutputHatch extends TileInventoryHatch {
 
 	public TileOutputHatch(int size) {
 		super(size);
+		inventory.setCanInsertSlot(0, false);
+		inventory.setCanInsertSlot(1, false);
+		inventory.setCanInsertSlot(2, false);
+		inventory.setCanInsertSlot(3, false);
+		inventory.setCanExtractSlot(0, true);
+		inventory.setCanExtractSlot(1, true);
+		inventory.setCanExtractSlot(2, true);
+		inventory.setCanExtractSlot(3, true);
+
 	}
 
 	@Override
@@ -26,14 +34,8 @@ public class TileOutputHatch extends TileInventoryHatch {
 	}
 
 	@Override
-	public boolean canInsertItem(int p_102007_1_, ItemStack p_102007_2_,
-			int p_102007_3_) {
-		return false;
-	}
-
-	@Override
 	public List<ModuleBase> getModules(int ID, EntityPlayer player) {
-		LinkedList<ModuleBase> modules = new LinkedList<ModuleBase>();
+		LinkedList<ModuleBase> modules = new LinkedList<>();
 		modules.add(new ModuleOutputSlotArray(8, 18, this, 0, this.getSizeInventory()));
 		return modules;
 	}

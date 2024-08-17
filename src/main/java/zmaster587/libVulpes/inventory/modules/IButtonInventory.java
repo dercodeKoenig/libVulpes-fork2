@@ -1,7 +1,7 @@
 package zmaster587.libVulpes.inventory.modules;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 public interface IButtonInventory {
 
@@ -10,6 +10,6 @@ public interface IButtonInventory {
 	 * @param buttonId id of the button pressed
 	 */
 	@SideOnly(Side.CLIENT)
-	public void onInventoryButtonPressed(int buttonId);
+	void onInventoryButtonPressed(int buttonId);
 	
 }

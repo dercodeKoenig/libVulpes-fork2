@@ -1,19 +1,15 @@
 package zmaster587.libVulpes.inventory.modules;
 
-import java.util.LinkedList;
-import java.util.List;
-
-import org.lwjgl.opengl.GL11;
-
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import zmaster587.libVulpes.api.IUniversalEnergy;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Container;
-import net.minecraft.inventory.ICrafting;
-import net.minecraft.inventory.Slot;
-import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraft.inventory.IContainerListener;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import zmaster587.libVulpes.api.IUniversalEnergy;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public class ModulePower extends ModuleBase {
 
@@ -41,21 +37,20 @@ public class ModulePower extends ModuleBase {
 		gui.drawTexturedModalRect(x + offsetX + 2, y + offsetY + barYSize + 5, 15, 171, 4, 9);
 
 		//Power Bar
-		float percent = tile.getEnergyStored()/(float)tile.getMaxEnergyStored();
+		float percent = tile.getUniversalEnergyStored()/(float)tile.getMaxEnergyStored();
 
 		gui.drawTexturedModalRect(offsetX + x + 1, 1 + offsetY + y + (barYSize-(int)(percent*barYSize)), textureOffsetX, barYSize- (int)(percent*barYSize) + textureOffsetY, barXSize, (int)(percent*barYSize));
 	}
 
 	@SideOnly(Side.CLIENT)
 	@Override
-	public void renderForeground (int guiOffsetX, int guiOffsetY, int mouseX, int mouseY, float zLevel, GuiContainer gui, FontRenderer font) {
-
+	public void renderToolTip(int guiOffsetX, int guiOffsetY, int mouseX, int mouseY, float zLevel, GuiContainer gui, FontRenderer font) {
 		int relativeX = mouseX - offsetX;
 		int relativeY = mouseY - offsetY;
 
 		if( relativeX > 0 && relativeX < barXSize && relativeY > 0 && relativeY < barYSize) {
-			List<String> list = new LinkedList<String>();
-			list.add(tile.getEnergyStored() + " / " + tile.getMaxEnergyStored() + " Power");
+			List<String> list = new LinkedList<>();
+			list.add(tile.getUniversalEnergyStored() + " / " + tile.getMaxEnergyStored() + " Power");
 
 			this.drawTooltip(gui, list, mouseX, mouseY, zLevel, font);
 		}
@@ -72,46 +67,46 @@ public class ModulePower extends ModuleBase {
 	@Override
 	public boolean needsUpdate(int localId) {
 		if(localId == 0)
-			return (prevPower & 0xFFFF) != (tile.getEnergyStored() & 0xFFFF);
+			return (prevPower & 0xFFFF) != (tile.getUniversalEnergyStored() & 0xFFFF);
 		else if(localId == 1)
-			return ( (prevPower >>> 16 ) & 0xFFFF) != ( ( tile.getEnergyStored()  >>> 16) & 0xFFFF);
+			return ( (prevPower >>> 16 ) & 0xFFFF) != ( ( tile.getUniversalEnergyStored()  >>> 16) & 0xFFFF);
 		return false;
 	}
 	
 	@Override
 	protected void updatePreviousState(int localId) {
 		if(localId == 0) {
-			int data = (tile.getEnergyStored() & 0xFFFF);
+			int data = (tile.getUniversalEnergyStored() & 0xFFFF);
 			prevPower = (prevPower & 0xFFFF0000) | data;
 		}
 		else if(localId == 1) {
-			int data = (tile.getEnergyStored() & 0xFFFF0000);
+			int data = (tile.getUniversalEnergyStored() & 0xFFFF0000);
 			prevPower = (prevPower & 0xFFFF) | data;
 		}
 	}
 
 	@Override
-	public void sendChanges(Container container, ICrafting crafter, int variableId, int localId) {
+	public void sendChanges(Container container, IContainerListener crafter, int variableId, int localId) {
 
 		if(localId == 0) {
-			int data = (tile.getEnergyStored() & 0xFFFF);
-			crafter.sendProgressBarUpdate(container, variableId, data);
+			int data = (tile.getUniversalEnergyStored() & 0xFFFF);
+			crafter.sendWindowProperty(container, variableId, data);
 		}
 		else if(localId == 1) {
-			int data = (tile.getEnergyStored() & 0xFFFF0000);
-			crafter.sendProgressBarUpdate(container, variableId, data >>> 16);
+			int data = (tile.getUniversalEnergyStored() & 0xFFFF0000);
+			crafter.sendWindowProperty(container, variableId, data >>> 16);
 		}
 	}
 
 	@Override
 	public void onChangeRecieved(int slot, int value) {
 		if(slot == 0) {
-			int energy = tile.getEnergyStored();
+			int energy = tile.getUniversalEnergyStored();
 			energy = (energy & 0xFFFF0000) | (value & 0xFFFF);
 			tile.setEnergyStored(energy);
 		}
 		else if(slot == 1) {
-			int energy = tile.getEnergyStored();
+			int energy = tile.getUniversalEnergyStored();
 			energy = (energy & 0x0000FFFF) | (value << 16);
 			tile.setEnergyStored(energy);
 		}

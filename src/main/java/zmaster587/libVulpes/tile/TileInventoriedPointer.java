@@ -5,133 +5,163 @@ import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class TileInventoriedPointer extends TilePointer implements IInventoryMultiblock, ISidedInventory {
 
 	@Override
 	public int getSizeInventory() {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
 			return ((IInventory)e).getSizeInventory();
 		return 0;
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack getStackInSlot(int i) {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
 			return ((IInventory)e).getStackInSlot(i);
-		return null;
+		return ItemStack.EMPTY;
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack decrStackSize(int i, int j) {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
 			return ((IInventory)e).decrStackSize(i,j);
-		return null;
+		return ItemStack.EMPTY;
 	}
 
 	@Override
-	public ItemStack getStackInSlotOnClosing(int i) {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
-			return ((IInventory)e).getStackInSlotOnClosing(i);
-		return null;
-	}
-
-	@Override
-	public void setInventorySlotContents(int i, ItemStack itemstack) {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
+	public void setInventorySlotContents(int i, @Nonnull ItemStack itemstack) {
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
 			 ((IInventory)e).setInventorySlotContents(i,itemstack);
 	}
 
 	@Override
-	public String getInventoryName() {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
-			return ((IInventory)e).getInventoryName();
+	@Nullable
+	public String getName() {
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
+			return ((IInventory)e).getName();
 		return null;
 	}
 
 	@Override
-	public boolean hasCustomInventoryName() {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
-			return ((IInventory)e).hasCustomInventoryName();
+	public boolean hasCustomName() {
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
+			return ((IInventory)e).hasCustomName();
 		return false;
 	}
 
 	@Override
 	public int getInventoryStackLimit() {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
 			return ((IInventory)e).getInventoryStackLimit();
 		return 0;
 	}
-
+	
 	@Override
-	public boolean isUseableByPlayer(EntityPlayer entityplayer) {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
-			return ((IInventory)e).isUseableByPlayer(entityplayer);
+	public boolean isUsableByPlayer(@Nonnull EntityPlayer entityplayer) {
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
+			return ((IInventory)e).isUsableByPlayer(entityplayer);
 		return false;
 	}
 
 	@Override
-	public void openInventory() {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
-			((IInventory)e).openInventory();
+	public boolean isEmpty() {
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
+			return ((IInventory)e).isEmpty();
+		return true;
+	}
+	
+	@Override
+	public void openInventory(EntityPlayer player) {
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
+			((IInventory)e).openInventory(player);
 	}
 
 	@Override
-	public void closeInventory() {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
-			((IInventory)e).closeInventory();
+	public void closeInventory(EntityPlayer player) {
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
+			((IInventory)e).closeInventory(player);
 	}
 
 	@Override
-	public boolean isItemValidForSlot(int i, ItemStack itemstack) {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof IInventory)
+	public boolean isItemValidForSlot(int i, @Nonnull ItemStack itemstack) {
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof IInventory)
 			return ((IInventory)e).isItemValidForSlot(i,itemstack);
 		return false;
 	}
 	
 	@Override
-	public int[] getAccessibleSlotsFromSide(int var1) {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
+	@Nonnull
+	public int[] getSlotsForFace(@Nonnull EnumFacing side) {
+		TileEntity e = world.getTileEntity(masterBlockPos);
 		if(e != null && e instanceof ISidedInventory)
-			return ((ISidedInventory)e).getAccessibleSlotsFromSide(var1);
-		else if(e != null && e instanceof ISidedInventory) {
-			int slots[] = new int[((IInventory)e).getSizeInventory()];
-			
-			for(int i = 0; i < slots.length; i++)
-			{
-				slots[i] = i;
-			}
-			return slots;
-		}
-		return new int[] {};
+			return ((ISidedInventory)e).getSlotsForFace(side);
+		else
+			return new int[] {};
 	}
-
+	
 	@Override
-	public boolean canInsertItem(int i, ItemStack itemstack, int j) {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof ISidedInventory)
-			return ((ISidedInventory)e).canInsertItem(i,itemstack, j);
+	public boolean canInsertItem(int i, @Nonnull ItemStack itemstack, EnumFacing direction) {
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof ISidedInventory)
+			return ((ISidedInventory)e).canInsertItem(i,itemstack, direction);
 		return true;
 	}
 
 	@Override
-	public boolean canExtractItem(int i, ItemStack itemstack, int j) {
-		TileEntity e = worldObj.getTileEntity(masterX, masterY, masterZ);
-		if(e != null && e instanceof ISidedInventory)
-			return ((ISidedInventory)e).canExtractItem(i,itemstack, j);
+	public boolean canExtractItem(int i, @Nonnull ItemStack itemstack, EnumFacing direction) {
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof ISidedInventory)
+			return ((ISidedInventory)e).canExtractItem(i,itemstack, direction);
 		
 		return true;
+	}
+
+	@Override
+	@Nonnull
+	public ItemStack removeStackFromSlot(int index) {
+		TileEntity e = world.getTileEntity(masterBlockPos);
+		if(e instanceof ISidedInventory)
+			return ((ISidedInventory)e).removeStackFromSlot(index);
+		
+		return ItemStack.EMPTY;
+	}
+
+	@Override
+	public int getField(int id) {
+		return 0;
+	}
+
+	@Override
+	public void setField(int id, int value) {
+		
+	}
+
+	@Override
+	public int getFieldCount() {
+		return 0;
+	}
+
+	@Override
+	public void clear() {
+		
 	}
 }

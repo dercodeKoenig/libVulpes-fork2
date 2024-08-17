@@ -1,24 +1,39 @@
-build/
-.gradle/
+# eclipse
+bin
+*.launch
+.settings
+.metadata
+.classpath
+.project
+
+# idea
+out
+*.ipr
+*.iws
+*.iml
+.idea
+
+# gradle
+# build
+output
+.gradle
+build
+
+# other
+eclipse
+run
 libVulpes.txt
-output/
-/asm
-/blueprints
-/build
-/config
-/gradle
-/logs
-/mods
-/resourcepacks
-/saves
-screenshots
-/gradle
-/asm
-/blueprints
-*.png
-*.obj
-*.ogg
 *.xcf
-/libs
-/models
-/crash-reports
+
+# minecraft
+asm
+blueprints
+config
+logs
+mods
+resourcepacks
+saves
+screenshots
+crash-reports
+changelog.html
+

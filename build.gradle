@@ -1,9 +1,8 @@
 buildscript {
     repositories {
         mavenCentral()
-        maven {
-            name = "forge"
-            url = "http://files.minecraftforge.net/maven"
+        maven { 
+            url = 'https://maven.minecraftforge.net' 
         }
         maven {
             name = "sonatype"
@@ -11,22 +10,56 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
+        classpath 'net.minecraftforge.gradle:ForgeGradle:6.+'
     }
 }
-apply plugin: 'forge'
-apply from: "gradle/scripts/getbuildnumber.gradle"
+
+apply plugin: 'net.minecraftforge.gradle'
+
+sourceCompatibility = 8
+targetCompatibility = 8
+
+
 minecraft {
-    version = "1.7.10-10.13.4.1614-1.7.10"
-    runDir = "eclipse/assets"
-    replace "@MAJOR@", version_major
-    replace "@MINOR@", version_minor
-    replace "@REVIS@", version_revis
-    replace "@BUILD@", project.getBuildNumber()
+
+    mappings channel: 'snapshot', version: '20171003-1.12'
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        data {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            args '--mod', 'AdvancedRocketry', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
 }
 
-apply from: "gradle/scripts/version.gradle"
-apply from: "gradle/scripts/jars.gradle"
 
 group= "zmaster587.libVulpes" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "LibVulpes"
@@ -38,18 +71,33 @@ clean {
 
 repositories {
     maven {
-        name = "chickenbones"
-        url = "http://chickenbones.net/maven/"
-    }
-     ivy {
-		name "CoFHCore"
-		url = "http://addons-origin.cursecdn.com/files/2246/919/"
-		artifactPattern 'http://addons-origin.cursecdn.com/files/2246/919/[module]-[revision].[ext]'
-	}
-        ivy {
-            name "industrialcraft-2"
-            artifactPattern "http://jenkins.ic2.player.to/job/IC2_experimental/827/artifact/build/libs/[module]-[revision].[ext]"
+            name = "mezz.jei"
+            url = "http://dvs1.progwml6.com/files/maven"
+            allowInsecureProtocol = true
         }
+    /*ivy {
+            name "industrialcraft-2"
+            artifactPattern "http://jenkins.ic2.player.to/job/IC2_112/96/artifact/build/libs/[module]-[revision].[ext]"
+        }*/
+    maven {
+        name 'jared maven'
+        url 'http://blamejared.com/maven'
+        allowInsecureProtocol = true
+    }
+    maven {
+        url 'http://maven.mcmoddev.com'
+        allowInsecureProtocol = true
+    }
+    maven {
+        url "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+//    ivy {
+//            name "EnderIO"
+//            artifactPattern "https://addons-origin.cursecdn.com/files/2238/375/[module]-[revision].[ext]"
+//        }
 }
 
 dependencies {
@@ -57,39 +105,38 @@ dependencies {
     // or you may define them like so..
     //compile "some.group:artifact:version:classifier"
     //compile "some.group:artifact:version"
+    minecraft 'net.minecraftforge:forge:1.12.2-14.23.5.2859'
       
-    // real examples
-    //compile 'com.mod-buildcraft:buildcraft:7.0.20:dev'  // adds buildcraft to the dev env
-    compile 'codechicken:CodeChickenLib:1.7.10-1.1.3.127:dev'
-    compile 'codechicken:CodeChickenCore:1.7.10-1.0.4.35:dev'
-    compile 'codechicken:NotEnoughItems:1.7.10-1.0.4.95:dev'
-    compile name: 'industrialcraft-2', version: '2.2.827-experimental-api', ext: 'jar'
+    //compile name: 'industrialcraft-2', version: '2.8.96-ex112-api', ext: 'jar'
+    implementation "net.darkhax.tesla:Tesla-1.12.2:1.0.63"
+    implementation "blusunrize:ImmersiveEngineering:0.12-92-+"
+    //You'll need to download Tesla Tesla-1.12.2-1.0.63-deobf.jar and put it into the libs folder
+    //compile name: 'EnderIO', version: '1.7.10-2.2.8.381', ext: 'jar'
     
-    compile name: 'CoFHCore', version: '[1.7.10]3.0.3-303', ext: 'jar'
-    //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
+    // compile against the JEI API
+    implementation "mezz.jei:jei_1.12.2:4.8.0.110:api"
+    // at runtime, use the full JEI jar
+    runtimeOnly "mezz.jei:jei_1.12.2:4.8.0.110"
+    //implementation  "curse.maven:industrial-craft-242638-2597419-api"
+    implementation fg.deobf("curse.maven:industrial-craft-242638:2746892")
+    implementation fg.deobf("curse.maven:gregtechce-293327:2781826")
 
-    // for more info...
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
 }
 
-processResources
-{
-    // this will ensure that this task is redone when the versions change.
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
 
-    // replace stuff in mcmod.info, nothing else
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-               
-        // replace version and mcversion
-        expand 'version':project.version, 'mcversion':project.minecraft.version
+task deobfJar(type: Jar) {
+     from sourceSets.main.output
+     //if project name is BBM-Dev it makes the deobf jar deobf-dev if not its just deobf
+     archiveClassifier = "deobf"
+     //sets where the jars go to.
+     destinationDirectory = file 'libvulpes-deobf'
+     manifest {
+        attributes 'FMLCorePlugin': 'zmaster587.advancedRocketry.asm.AdvancedRocketryPlugin'
+        attributes 'FMLCorePluginContainsFMLMod': 'true'
     }
-       
-    // copy everything else, thats not the mcmod.info
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
-    }
+     mustRunAfter "jar" 
 }
+
+
+tasks.build.dependsOn deobfJar

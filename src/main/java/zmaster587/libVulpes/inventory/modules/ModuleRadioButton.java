@@ -1,13 +1,12 @@
 package zmaster587.libVulpes.inventory.modules;
 
-import java.util.List;
-
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.inventory.Container;
-import net.minecraft.inventory.ICrafting;
+import net.minecraft.inventory.IContainerListener;
 
+import java.util.List;
 public class ModuleRadioButton  extends ModuleBase {
 
 	IToggleButton tile;
@@ -72,9 +71,9 @@ public class ModuleRadioButton  extends ModuleBase {
 	}
 
 	@Override
-	public void sendChanges(Container container, ICrafting crafter,
+	public void sendChanges(Container container, IContainerListener crafter,
 			int variableId, int localId) {
-		crafter.sendProgressBarUpdate(container, variableId, getOptionSelected());
+		crafter.sendWindowProperty(container, variableId, getOptionSelected());
 	}
 
 	@Override

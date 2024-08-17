@@ -4,8 +4,9 @@
     stages {
         stage('Build') {
             steps {
-                sh 'gradle clean'
-                sh 'gradle build' 
+		sh 'mkdir -p libs'
+                sh 'chmod a+x ./gradlew'
+                sh './gradlew clean build mavenPublish' 
                 archiveArtifacts artifacts: '**output/*.jar', fingerprint: true 
             }
         }

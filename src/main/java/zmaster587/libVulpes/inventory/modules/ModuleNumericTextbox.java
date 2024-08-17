@@ -8,11 +8,11 @@ public class ModuleNumericTextbox extends ModuleTextBox {
 			int sizeX, int sizeY, int maxStrLen) {
 		super(tile, offsetX, offsetY, sizeX, sizeY, maxStrLen);
 	}
-	
+
 	public ModuleNumericTextbox(IGuiCallback tile, int offsetX, int offsetY, String initialString) {
 		super(tile, offsetX, offsetY, initialString);
 	}
-	
+
 	@Override
 	public boolean keyTyped(char chr, int t) {
 
@@ -32,5 +32,4 @@ public class ModuleNumericTextbox extends ModuleTextBox {
 
 		return true;
 	}
-
 }

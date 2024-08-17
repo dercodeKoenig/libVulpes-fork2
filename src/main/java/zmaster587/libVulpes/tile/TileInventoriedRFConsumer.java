@@ -1,11 +1,14 @@
 package zmaster587.libVulpes.tile;
 
-import zmaster587.libVulpes.util.EmbeddedInventory;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.util.EnumFacing;
+import zmaster587.libVulpes.util.EmbeddedInventory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public abstract class TileInventoriedRFConsumer extends TileEntityRFConsumer implements ISidedInventory {
 
@@ -17,10 +20,11 @@ public abstract class TileInventoriedRFConsumer extends TileEntityRFConsumer imp
 	}
 	
 	@Override
-	public void writeToNBT(NBTTagCompound nbt) {
+	public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
 		super.writeToNBT(nbt);
 		
 		inventory.writeToNBT(nbt);
+		return nbt;
 	}
 	
 	@Override
@@ -36,32 +40,32 @@ public abstract class TileInventoriedRFConsumer extends TileEntityRFConsumer imp
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack getStackInSlot(int slot) {
 		return inventory.getStackInSlot(slot);
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack decrStackSize(int slot, int amt) {
 		return inventory.decrStackSize(slot, amt);
 	}
 
-	@Override
-	public ItemStack getStackInSlotOnClosing(int slot) {
-		return inventory.getStackInSlot(slot);
-	}
 
 	@Override
-	public void setInventorySlotContents(int slot, ItemStack stack) {
+	public void setInventorySlotContents(int slot, @Nonnull ItemStack stack) {
 		inventory.setInventorySlotContents(slot, stack);
 	}
 
+	
 	@Override
-	public boolean hasCustomInventoryName() {
+	public boolean hasCustomName() {
 		return false;
 	}
 	
 	@Override
-	public String getInventoryName() {
+	@Nullable
+	public String getName() {
 		return null;
 	}
 
@@ -71,30 +75,59 @@ public abstract class TileInventoriedRFConsumer extends TileEntityRFConsumer imp
 	}
 
 	@Override
-	public boolean isUseableByPlayer(EntityPlayer player) {
-		return player.getDistance(xCoord, yCoord, zCoord) < 64;
+	public boolean isUsableByPlayer(EntityPlayer player) {
+		return player.getDistanceSq(this.pos) < 64;
 	}
-
-
 	@Override
-	public boolean canInsertItem(int p_102007_1_, ItemStack p_102007_2_,
-			int p_102007_3_) {
-		return true;
+	public void openInventory(EntityPlayer player) {
+		inventory.openInventory(player);
 	}
 
 	@Override
-	public boolean canExtractItem(int p_102008_1_, ItemStack p_102008_2_,
-			int p_102008_3_) {
-		return true;
+	public void closeInventory(EntityPlayer player) {
+		inventory.closeInventory(player);
 	}
 	
 	@Override
-	public void openInventory() {
-		
+	public boolean canInsertItem(int index, @Nonnull ItemStack itemStackIn,
+			EnumFacing direction) {
+		return inventory.canInsertItem(index, itemStackIn, direction);
 	}
 
 	@Override
-	public void closeInventory() {
-		
+	public boolean canExtractItem(int index, @Nonnull ItemStack stack,
+			EnumFacing direction) {
+		return inventory.canExtractItem(index, stack, direction);
+	}
+
+	@Override
+	@Nonnull
+	public ItemStack removeStackFromSlot(int index) {
+		return inventory.removeStackFromSlot(index);
+	}
+
+	@Override
+	public int getField(int id) {
+		return inventory.getField(id);
+	}
+
+	@Override
+	public void setField(int id, int value) {
+		inventory.setField(id, value);
+	}
+
+	@Override
+	public int getFieldCount() {
+		return inventory.getFieldCount();
+	}
+
+	@Override
+	public void clear() {
+		inventory.clear();
+	}
+	
+	@Override
+	public boolean isEmpty() {
+		return inventory.isEmpty();
 	}
 }

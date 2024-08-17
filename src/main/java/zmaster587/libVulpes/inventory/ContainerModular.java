@@ -6,9 +6,13 @@ import zmaster587.libVulpes.inventory.modules.IModularInventory;
 import zmaster587.libVulpes.inventory.modules.ModuleBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
-import net.minecraft.inventory.ICrafting;
+import net.minecraft.inventory.IContainerListener;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+
+import javax.annotation.Nonnull;
+
+//import javax.annotation.Nonnull;
 
 public class ContainerModular extends Container {
 
@@ -50,14 +54,14 @@ public class ContainerModular extends Container {
 	}
 
 	@Override
-	public void addCraftingToCrafters(ICrafting crafter) {
-		super.addCraftingToCrafters(crafter);
+	public void addListener(IContainerListener listener) {
+		super.addListener(listener);
 
 		int moduleIndex = 0;
 
 		for(ModuleBase module : modules) {
 			//for(int i = 0; i < module.numChangesToSend(); i++) {
-			module.sendInitialChanges(this, crafter, moduleIndex);
+			module.sendInitialChanges(this, listener, moduleIndex);
 
 			moduleIndex+= module.numberOfChangesToSend();
 			//}
@@ -74,9 +78,9 @@ public class ContainerModular extends Container {
 			for(int i = 0; i < module.numberOfChangesToSend(); i++) {
 				if(module.isUpdateRequired(i)) {
 
-					for (int j = 0; j < this.crafters.size(); ++j) {
-						module.sendChanges(this, ((ICrafting)this.crafters.get(j)), moduleIndex, i);
-					}
+                    for (IContainerListener listener : this.listeners) {
+                        module.sendChanges(this, listener, moduleIndex, i);
+                    }
 				}
 				moduleIndex++;
 			}
@@ -99,10 +103,11 @@ public class ContainerModular extends Container {
 	}
 
 	@Override
+	@Nonnull
 	public ItemStack transferStackInSlot(EntityPlayer player, int slotId) {
 
-		ItemStack itemstack = null;
-		Slot slot = (Slot)this.inventorySlots.get(slotId);
+		ItemStack itemstack = ItemStack.EMPTY;
+		Slot slot = this.inventorySlots.get(slotId);
 
 		if (slot != null && slot.getHasStack())
 		{
@@ -114,17 +119,17 @@ public class ContainerModular extends Container {
 			{
 				if (!this.mergeItemStack(itemstack1, numSlots, this.inventorySlots.size(), true))
 				{
-					return null;
+					return ItemStack.EMPTY;
 				}
 			}
 			else if (!this.mergeItemStack(itemstack1, 0, slotId, false))
 			{
-				return null;
+				return ItemStack.EMPTY;
 			}
 
-			if (itemstack1.stackSize == 0)
+			if (itemstack1.getCount() == 0)
 			{
-				slot.putStack((ItemStack)null);
+				slot.putStack(ItemStack.EMPTY);
 			}
 			else
 			{
@@ -134,100 +139,6 @@ public class ContainerModular extends Container {
 
 		return itemstack;
 	}
-	
-	 /**
-     * merges provided ItemStack with the first avaliable one in the container/player inventory
-     */
-    protected boolean mergeItemStack(ItemStack p_75135_1_, int p_75135_2_, int p_75135_3_, boolean p_75135_4_)
-    {
-        boolean flag1 = false;
-        int k = p_75135_2_;
-
-        if (p_75135_4_)
-        {
-            k = p_75135_3_ - 1;
-        }
-
-        Slot slot;
-        ItemStack itemstack1;
-
-        if (p_75135_1_.isStackable())
-        {
-            while (p_75135_1_.stackSize > 0 && (!p_75135_4_ && k < p_75135_3_ || p_75135_4_ && k >= p_75135_2_))
-            {
-                slot = (Slot)this.inventorySlots.get(k);
-                itemstack1 = slot.getStack();
-
-                if (itemstack1 != null && itemstack1.getItem() == p_75135_1_.getItem() && (!p_75135_1_.getHasSubtypes() || p_75135_1_.getItemDamage() == itemstack1.getItemDamage()) && ItemStack.areItemStackTagsEqual(p_75135_1_, itemstack1))
-                {
-                    int l = itemstack1.stackSize + p_75135_1_.stackSize;
-
-                    if (l <= p_75135_1_.getMaxStackSize())
-                    {
-                        p_75135_1_.stackSize = 0;
-                        itemstack1.stackSize = l;
-                        slot.onSlotChanged();
-                        flag1 = true;
-                    }
-                    else if (itemstack1.stackSize < p_75135_1_.getMaxStackSize())
-                    {
-                        p_75135_1_.stackSize -= p_75135_1_.getMaxStackSize() - itemstack1.stackSize;
-                        itemstack1.stackSize = p_75135_1_.getMaxStackSize();
-                        slot.onSlotChanged();
-                        flag1 = true;
-                    }
-                }
-
-                if (p_75135_4_)
-                {
-                    --k;
-                }
-                else
-                {
-                    ++k;
-                }
-            }
-        }
-
-        if (p_75135_1_.stackSize > 0)
-        {
-            if (p_75135_4_)
-            {
-                k = p_75135_3_ - 1;
-            }
-            else
-            {
-                k = p_75135_2_;
-            }
-
-            while (!p_75135_4_ && k < p_75135_3_ || p_75135_4_ && k >= p_75135_2_)
-            {
-                slot = (Slot)this.inventorySlots.get(k);
-                itemstack1 = slot.getStack();
-
-                //For some awful reason MC doesn't seem to check if a stack is valid...
-                if (itemstack1 == null && slot.isItemValid(p_75135_1_))
-                {
-                    slot.putStack(p_75135_1_.copy());
-                    slot.onSlotChanged();
-                    p_75135_1_.stackSize = 0;
-                    flag1 = true;
-                    break;
-                }
-
-                if (p_75135_4_)
-                {
-                    --k;
-                }
-                else
-                {
-                    ++k;
-                }
-            }
-        }
-
-        return flag1;
-    }
 
 	@Override
 	public boolean canInteractWith(EntityPlayer player) {

@@ -1,14 +1,14 @@
 package zmaster587.libVulpes.inventory.modules;
 
-import java.util.LinkedList;
-import java.util.List;
-
-import zmaster587.libVulpes.client.util.ProgressBarImage;
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.util.MathHelper;
+import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import zmaster587.libVulpes.client.util.ProgressBarImage;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public class ModuleDualProgressBar extends ModuleProgress {
 
@@ -34,14 +34,14 @@ public class ModuleDualProgressBar extends ModuleProgress {
 	@Override
 	@SideOnly(Side.CLIENT)
 	protected List<String> getToolTip() {
-		List<String> modifiedList = new LinkedList<String>();
+		List<String> modifiedList = new LinkedList<>();
 		
 		for(String string : tooltip) {
 			int centerPoint = progress.getTotalProgress(id);
 			int variation = progress.getProgress(id);
 			
-			String newStr = string.replaceAll("%b", String.format("%.2f",multiplier*MathHelper.clamp_float(centerPoint - variation/2,0,100)));
-			newStr = newStr.replaceAll("%a", String.format("%.2f",multiplier*MathHelper.clamp_float(centerPoint + variation/2,0,100)));
+			String newStr = string.replaceAll("%b", String.format("%.2f",multiplier*MathHelper.clamp(centerPoint - variation/2,0,100)));
+			newStr = newStr.replaceAll("%a", String.format("%.2f",multiplier*MathHelper.clamp(centerPoint + variation/2,0,100)));
 			modifiedList.add(newStr);
 		}
 		return modifiedList;

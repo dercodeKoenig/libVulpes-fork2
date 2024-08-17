@@ -2,9 +2,11 @@ package zmaster587.libVulpes.gui;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.ResourceLocation;
-
 import org.lwjgl.opengl.GL11;
 
 public class GuiToggleButtonImage extends GuiButton {
@@ -32,18 +34,21 @@ public class GuiToggleButtonImage extends GuiButton {
 	}
 	
 	@Override
-	public void drawButton(Minecraft minecraft, int par2, int par3)
+	public void drawButton(Minecraft minecraft, int par2, int par3, float f1)
 	{
 		if (this.visible)
 		{
 			//
-			this.field_146123_n = par2 >= this.xPosition && par3 >= this.yPosition && par2 < this.xPosition + this.width && par3 < this.yPosition + this.height;
+			this.hovered = par2 >= this.x && par3 >= this.y && par2 < this.x + this.width && par3 < this.y + this.height;
 			
-			/*if(mousePressed(minecraft, par2, par3) && buttonTexture[2] != null)
-				minecraft.getTextureManager().bindTexture(buttonTexture[2]);*/
-			if(state)
+			//Only display the hover icon if a pressed icon is found and the mouse is hovered
+			if(hovered && (buttonTexture.length > 2 && buttonTexture[2] != null ))
+				minecraft.getTextureManager().bindTexture(buttonTexture[1]);
+			else if(state && ( buttonTexture.length > 2 && buttonTexture[2] != null ))
+				minecraft.getTextureManager().bindTexture(buttonTexture[2]);
+			else if(!state)
 				minecraft.getTextureManager().bindTexture(buttonTexture[0]);
-			else
+			else // if !state and button[2] == null
 				minecraft.getTextureManager().bindTexture(buttonTexture[1]);
 			
 			GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
@@ -51,13 +56,19 @@ public class GuiToggleButtonImage extends GuiButton {
 
 			//Draw the button...each button should contain 3 images default state, hover, and pressed
 			
-			Tessellator tessellator = Tessellator.instance;
-			tessellator.startDrawingQuads();
-			tessellator.addVertexWithUV(xPosition, yPosition + height, (double)this.zLevel, 0, 1);
-			tessellator.addVertexWithUV(xPosition + width, yPosition + height, (double)this.zLevel, 1, 1);
-			tessellator.addVertexWithUV(xPosition + width, yPosition, (double)this.zLevel, 1, 0);
-			tessellator.addVertexWithUV(xPosition, yPosition, (double)this.zLevel, 0, 0);
-			tessellator.draw();
+			GlStateManager.enableBlend();
+            GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
+            GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+           
+			
+	        Tessellator tessellator = Tessellator.getInstance();
+	        BufferBuilder vertexbuffer = tessellator.getBuffer();
+	        vertexbuffer.begin(7, DefaultVertexFormats.POSITION_TEX);
+	        vertexbuffer.pos(x, y + height, this.zLevel).tex(0, 1).endVertex();
+	        vertexbuffer.pos(x + width, y + height, this.zLevel).tex( 1, 1).endVertex();
+	        vertexbuffer.pos(x + width, y, this.zLevel).tex(1, 0).endVertex();
+	        vertexbuffer.pos(x, y, this.zLevel).tex(0, 0).endVertex();
+	        tessellator.draw();
 			
 			this.mouseDragged(minecraft, par2, par3);
 		}

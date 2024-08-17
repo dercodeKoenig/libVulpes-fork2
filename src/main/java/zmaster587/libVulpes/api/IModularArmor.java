@@ -1,24 +1,37 @@
 package zmaster587.libVulpes.api;
 
-import java.util.List;
-
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
+import zmaster587.libVulpes.util.IconResource;
+
+import javax.annotation.Nonnull;
+import java.util.List;
 
 public interface IModularArmor {
 	
-	public void addArmorComponent(World world, ItemStack armor, ItemStack componentStack, int slot);
-	
-	public ItemStack removeComponent(World world, ItemStack armor, int index);
-	
-	public List<ItemStack> getComponents(ItemStack armor);
+	void addArmorComponent(World world, @Nonnull ItemStack armor, @Nonnull ItemStack componentStack, int slot);
 
-	public ItemStack getComponentInSlot(ItemStack stack, int slot);
+	@Nonnull
+	ItemStack removeComponent(World world, @Nonnull ItemStack armor, int index);
 	
-	public int getNumSlots(ItemStack stack);
+	List<ItemStack> getComponents(@Nonnull ItemStack armor);
+
+	@Nonnull
+	ItemStack getComponentInSlot(@Nonnull ItemStack stack, int slot);
 	
-	public IInventory loadModuleInventory(ItemStack stack);
+	//Returns a list of externally modifiable fluidtanks
+	boolean canBeExternallyModified(@Nonnull ItemStack armor, int slot);
 	
-	public void saveModuleInventory(ItemStack stack, IInventory inv);
+	int getNumSlots(@Nonnull ItemStack stack);
+	
+	IInventory loadModuleInventory(@Nonnull ItemStack stack);
+	
+	void saveModuleInventory(@Nonnull ItemStack stack, IInventory inv);
+	
+	//returns true if the stack is valid for the given slot
+	boolean isItemValidForSlot(@Nonnull ItemStack stack, int slot);
+	
+	//Returns an IconResource to be displayed in the slot, if null default slot texture is used
+	IconResource getResourceForSlot(int slot);
 }

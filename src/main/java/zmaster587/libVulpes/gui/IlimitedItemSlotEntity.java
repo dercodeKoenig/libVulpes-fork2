@@ -2,6 +2,8 @@ package zmaster587.libVulpes.gui;
 
 import net.minecraft.item.ItemStack;
 
-public interface IlimitedItemSlotEntity {
-	public boolean isItemValidForLimitedSlot(int slot, ItemStack itemstack);
+import javax.annotation.Nonnull;
+
+public interface ILimitedItemSlotEntity {
+	boolean isItemValidForLimitedSlot(int slot, @Nonnull ItemStack itemstack);
 }

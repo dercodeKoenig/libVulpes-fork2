@@ -1,9 +1,9 @@
 package zmaster587.libVulpes.tile;
 
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.nbt.NBTTagCompound;
 import zmaster587.libVulpes.block.BlockTile;
 import zmaster587.libVulpes.inventory.modules.IProgressBar;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
 
 public abstract class TileInventoriedForgePowerMachine extends TileInventoriedForgeProducer implements IProgressBar {
 
@@ -23,29 +23,28 @@ public abstract class TileInventoriedForgePowerMachine extends TileInventoriedFo
 
 	}
 
-	protected void setState(boolean on) {
-		if(on)
-			worldObj.setBlockMetadataWithNotify(this.xCoord, this.yCoord, this.zCoord, worldObj.getBlockMetadata(this.xCoord, this.yCoord, this.zCoord) | 8, 2);
-		else
-			worldObj.setBlockMetadataWithNotify(this.xCoord, this.yCoord, this.zCoord, worldObj.getBlockMetadata(this.xCoord, this.yCoord, this.zCoord) & (~8), 2);
-
-	}
-
-	protected void onOperationFinish() {
-		setState(false);
-	};
-
 	public int getLastAmtGenerated() {
 		return lastRFAmount;
 	}
 	
+	protected void setState(boolean state) {
+		IBlockState bstate = world.getBlockState(getPos());
+		if(bstate.getBlock() instanceof BlockTile &&  bstate.getValue(BlockTile.STATE) != state)
+			world.setBlockState(getPos(), bstate.withProperty(BlockTile.STATE, state));
+
+	}
+
+	protected void onOperationFinish() {
+		
+		setState(false);
+	}
+
 	@Override
-	public void updateEntity() {
-		lastRFAmount = 0;
+	public void update() {
 		if(canGeneratePower()) {
 			if(hasEnoughEnergyBuffer(getPowerPerOperation())) {
 				lastRFAmount = getPowerPerOperation();
-				if(!worldObj.isRemote) this.energy.acceptEnergy(lastRFAmount, false);
+				if(!world.isRemote) this.energy.acceptEnergy(lastRFAmount, false);
 				onGeneratePower();
 				setState(true);
 				if(timeRemaining < currentTime++) {
@@ -66,10 +65,12 @@ public abstract class TileInventoriedForgePowerMachine extends TileInventoriedFo
 	}
 
 	@Override
-	public void writeToNBT(NBTTagCompound nbt) {
+	public NBTTagCompound writeToNBT(NBTTagCompound nbt) {
 		super.writeToNBT(nbt);
 		nbt.setInteger("timeRemaining", timeRemaining);
 		nbt.setInteger("currentTime", currentTime);
+
+		return nbt;
 	}
 
 	@Override

@@ -1,25 +1,21 @@
 package zmaster587.libVulpes.tile.multiblock;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import cpw.mods.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.Side;
 import zmaster587.libVulpes.api.IUniversalEnergy;
 import zmaster587.libVulpes.block.BlockMeta;
-import zmaster587.libVulpes.inventory.modules.IModularInventory;
-import zmaster587.libVulpes.inventory.modules.IToggleButton;
-import zmaster587.libVulpes.inventory.modules.ModuleBase;
-import zmaster587.libVulpes.inventory.modules.ModulePower;
-import zmaster587.libVulpes.inventory.modules.ModuleToggleSwitch;
+import zmaster587.libVulpes.inventory.modules.*;
 import zmaster587.libVulpes.network.PacketHandler;
 import zmaster587.libVulpes.network.PacketMachine;
 import zmaster587.libVulpes.tile.multiblock.TileMultiblockMachine.NetworkPackets;
 import zmaster587.libVulpes.util.INetworkMachine;
 import zmaster587.libVulpes.util.MultiBattery;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public class TileMultiPowerProducer extends TileMultiBlock implements IToggleButton, IModularInventory, INetworkMachine {
 
@@ -40,6 +36,7 @@ public class TileMultiPowerProducer extends TileMultiBlock implements IToggleBut
 	public void setMachineEnabled(boolean enabled) {
 		this.enabled = enabled;
 		this.markDirty();
+		world.notifyBlockUpdate(pos, world.getBlockState(pos),  world.getBlockState(pos), 3);
 	}
 
 	@Override
@@ -50,8 +47,8 @@ public class TileMultiPowerProducer extends TileMultiBlock implements IToggleBut
 			toggleSwitch.setToggleState(getMachineEnabled());
 
 			//Last ditch effort to update the toggle switch when it's flipped
-			if(!worldObj.isRemote)
-				PacketHandler.sendToNearby(new PacketMachine(this, (byte)NetworkPackets.TOGGLE.ordinal()), worldObj.provider.dimensionId, xCoord, yCoord, zCoord, 64);
+			if(!world.isRemote)
+				PacketHandler.sendToNearby(new PacketMachine(this, (byte)NetworkPackets.TOGGLE.ordinal()), world.provider.getDimension(), pos.getX(), pos.getY(), pos.getZ(), 64);
 		}
 	}
 	
@@ -91,7 +88,7 @@ public class TileMultiPowerProducer extends TileMultiBlock implements IToggleBut
 
 	@Override
 	public List<ModuleBase> getModules(int ID, EntityPlayer player) {
-		LinkedList<ModuleBase> modules = new LinkedList<ModuleBase>();
+		LinkedList<ModuleBase> modules = new LinkedList<>();
 		modules.add(new ModulePower(18, 20, getBatteries()));
 		modules.add(toggleSwitch = new ModuleToggleSwitch(160, 5, 0, "", this,  zmaster587.libVulpes.inventory.TextureResources.buttonToggleImage, 11, 26, getMachineEnabled()));
 
@@ -124,22 +121,11 @@ public class TileMultiPowerProducer extends TileMultiBlock implements IToggleBut
 		super.integrateTile(tile);
 
 		for(BlockMeta block : TileMultiBlock.getMapping('p')) {
-			if(block.getBlock() == worldObj.getBlock(tile.xCoord, tile.yCoord, tile.zCoord))
+			if(block.getBlock() == world.getBlockState(tile.getPos()).getBlock())
 				batteries.addBattery((IUniversalEnergy) tile);
 		}
 	}
 
-	public void setMachineRunning(boolean running) {
-		if(running && this.getBlockMetadata() < 8) {
-			this.blockMetadata = getBlockMetadata() | 8;
-			worldObj.setBlockMetadataWithNotify(xCoord, yCoord, zCoord, this.blockMetadata, 2);
-		}
-		else if(!running && this.blockMetadata >= 8) {
-			this.blockMetadata = getBlockMetadata() & 7;
-			worldObj.setBlockMetadataWithNotify(xCoord, yCoord, zCoord, this.blockMetadata, 2); //Turn off machine
-		}
-	}
-	
 	@Override
 	protected void writeNetworkData(NBTTagCompound nbt) {
 		super.writeNetworkData(nbt);
