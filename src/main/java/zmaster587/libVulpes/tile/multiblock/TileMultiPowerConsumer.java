@@ -161,18 +161,27 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 		}
 
 		if(isRunning()) {
-			if(hasEnergy(requiredPowerPerTick()) || (world.isRemote && hadPowerLastTick)) {
+			if((!world.isRemote && hasEnergy(requiredPowerPerTick())) || (world.isRemote && hadPowerLastTick)) {
+
 				onRunningPoweredTick();
 
 				//If server then check to see if we need to update the client, use power and process output if applicable
 				if(!world.isRemote) {
+
 					if(!hadPowerLastTick) {
 						hadPowerLastTick = true;
+						markDirty();
+						PacketHandler.sendToNearby(new PacketMachine(this, (byte)NetworkPackets.POWERERROR.ordinal()), ZUtils.getDimensionId(world), this.pos.getX(), this.pos.getY(), this.pos.getZ(), 256.0);
+						world.notifyBlockUpdate(pos, world.getBlockState(pos),  world.getBlockState(pos), 3);
 					}
-					useEnergy(usedPowerPerTick());
+
 				}
-			} else if(!world.isRemote && hadPowerLastTick) { //If server and out of power check to see if client needs update
+			}
+			else if(!world.isRemote && hadPowerLastTick) { //If server and out of power check to see if client needs update
 				hadPowerLastTick = false;
+				markDirty();
+				PacketHandler.sendToNearby(new PacketMachine(this, (byte)NetworkPackets.POWERERROR.ordinal()), ZUtils.getDimensionId(world), this.pos.getX(), this.pos.getY(), this.pos.getZ(), 256.0);
+				world.notifyBlockUpdate(pos, world.getBlockState(pos),  world.getBlockState(pos), 3);
 			}
 		}
 	}

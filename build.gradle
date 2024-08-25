@@ -3,6 +3,7 @@ buildscript {
         maven {
             name = "forge"
             url = "http://files.minecraftforge.net/maven"
+            allowInsecureProtocol = true
         }
         mavenCentral()
 	jcenter()
@@ -13,10 +14,11 @@ buildscript {
 	maven {
             name = "mezz.jei"
             url = "http://dvs1.progwml6.com/files/maven"
+            allowInsecureProtocol = true
         }
     }
     dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '4.1.+', changing: true
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '6+', changing: true
     }
 }
 
@@ -112,7 +114,9 @@ repositories {
     maven {
             name = "mezz.jei"
             url = "http://dvs1.progwml6.com/files/maven"
-        }
+        allowInsecureProtocol = true
+
+    }
 //     ivy {
 //             name "industrialcraft-2"
 //             artifactPattern "http://jenkins.ic2.player.to/job/IC2_112/96/artifact/build/libs/[module]-[revision].[ext]"
@@ -132,38 +136,21 @@ dependencies {
     // compile against the JEI API
     //decompile "mezz.jei:jei-1.16.1:7.0.0.6"
     // at runtime, use the full JEI jar
-    runtime "mezz.jei:jei-1.16.1:7.0.0.6:api"
+    runtimeOnly("mezz.jei:jei-1.16.1:7.0.0.6:api")
 
 }
 
 processResources
 {
-    // this will ensure that this task is redone when the versions change.
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.mcversion
 
-    // replace stuff in mcmod.info, nothing else
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-        include 'META-INF/mods.toml'
-                
-        // replace version and mcversion
-        expand 'version':project.version, 'mcversion':project.mcversion
-    }
-        
-    // copy everything else, thats not the mcmod.info
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
-        exclude 'META-INF/mods.toml'
-    }
 }
 
 task deobfJar(type: Jar) {
      from sourceSets.main.output
      //if project name is BBM-Dev it makes the deobf jar deobf-dev if not its just deobf
-     classifier = "deobf"
+     archiveClassifier = "deobf"
      //sets where the jars go to.
-     destinationDir = file 'output'
+    destinationDirectory = file 'output'
      manifest {
         attributes 'FMLCorePlugin': 'zmaster587.advancedRocketry.asm.AdvancedRocketryPlugin'
         attributes 'FMLCorePluginContainsFMLMod': 'true'
@@ -205,44 +192,7 @@ curseforge{
 
 
 publishing {
-    publications {
-        mavenJava(MavenPublication)
-        {
-            artifact jar
-            artifact deobfJar
-            //checks if minecraft is in the project.
-            //checks if minecraft is in the project.
-            // if (project.hasProperty("minecraft"))
-            // artifact ("CompiledWith.txt") {
-            //     classifier "CompiledWith"
-            //     extension "txt"
-            // }
-            /*/*if (project.hasProperty("bambooBuildNumber"))
-            artifact ("changelog.xml") {
-                classifier "changelog"
-                extension "xml"
-            }*/
-            artifact ("changelog.html"){
-                classifier "changelog"
-                extension "html"
-            }
-            //from components.java
-            //prints the current date to the pom file.
-            pom.withXml {
-                //asNode().appendNode('description', 'Created on ' + getDate())
-            }
-        }
-    }
 
-    repositories {
-        maven {
-        //checks for a the local property as a gradle argument and if exists outputs to a local dir.
-            if (project.hasProperty("local") && project.getProperty("local") == "true")
-                url "file:" + projectDir.path + "/build/maven"
-            else
-                url "file:///usr/share/nginx/maven/"
-        }
-    }
 }
 
 task makeChangelog(type: se.bjurr.gitchangelog.plugin.gradle.GitChangelogTask) {

@@ -48,9 +48,9 @@ ext.sharedManifest = manifest {
 jar {
      //if project has the property BBM-Dev then it appends dev to indicate the dev branch
      if (project.hasProperty("bambooshortPlanName") && project.getProperty("bambooshortPlanName") == "BBM-Dev") classifier = "dev-universal"
-     else classifier = "universal"
+     else archiveClassifier = "universal"
      //sets where the jars go to.
-     destinationDir = file 'output'
+     destinationDirectory = file 'output'
      manifest = project.manifest {
         from sharedManifest
      
