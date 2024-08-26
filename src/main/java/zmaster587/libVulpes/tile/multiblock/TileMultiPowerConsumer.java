@@ -204,6 +204,9 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 		//Increment for both client and server
 		currentTime++;
 
+		if(!world.isRemote)
+			useEnergy(powerPerTick);
+
 		SoundEvent str;
 		if(world.isRemote && (str = getSound()) != null && world.getGameTime() % getSoundDuration() == 0) {
 			//playMachineSound(str);
