@@ -15,9 +15,11 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import zmaster587.libVulpes.util.IFluidHandlerInternal;
 
+import java.nio.FloatBuffer;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -177,8 +179,8 @@ public class ModuleLiquidIndicator extends ModuleBase {
             if (fluidStack != null) {
                 list.add(fluidStack.getLocalizedName() + ": " + fluidStack.amount + " / " + tile.getTankProperties()[0].getCapacity() + " mB");
             } else {
-				list.add("Empty");
-			}
+                list.add("Empty");
+            }
 
             this.drawTooltip(gui, list, mouseX, mouseY, zLevel, font);
         }
@@ -188,6 +190,9 @@ public class ModuleLiquidIndicator extends ModuleBase {
     @Override
     public void renderBackground(GuiContainer gui, int x, int y, int mouseX, int mouseY,
                                  FontRenderer font) {
+
+        GL11.glColor3f(0.8f,0.8f,0.8f);
+
         super.renderBackground(gui, x, y, mouseX, mouseY, font);
         gui.drawTexturedModalRect(x + offsetX, y + offsetY, 176, 58, 14, 54);
 
