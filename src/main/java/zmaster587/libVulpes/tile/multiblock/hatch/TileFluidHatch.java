@@ -33,9 +33,10 @@ public class TileFluidHatch extends TilePointer implements IFluidHandlerInternal
 	private EmbeddedInventory inventory;
 	private boolean outputOnly;
 
+	public static float capacityMultiplier = 1.0f;
 
 	public TileFluidHatch() {
-		fluidTank = new FluidTank(16000);
+		fluidTank = new FluidTank((int) (16000 * capacityMultiplier));
 		inventory = new EmbeddedInventory(2, this);
 		inventory.setCanInsertSlot(0, true);
 		inventory.setCanInsertSlot(1, false);
@@ -43,7 +44,6 @@ public class TileFluidHatch extends TilePointer implements IFluidHandlerInternal
 		inventory.setCanExtractSlot(1, true);
 
 	}
-	
 	public TileFluidHatch(int capacity) {
 		fluidTank = new FluidTank(capacity);
 		inventory = new EmbeddedInventory(2,this);

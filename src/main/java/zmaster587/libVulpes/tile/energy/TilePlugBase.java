@@ -27,6 +27,7 @@ public abstract class TilePlugBase extends TilePointer implements IModularInvent
 
 	protected UniversalBattery storage;
 	protected int teir;
+	public static float energy_multiplier = 1.0f;
 	
 	public TilePlugBase() {
 		storage = new UniversalBattery(getMaxEnergy(0));
@@ -41,9 +42,9 @@ public abstract class TilePlugBase extends TilePointer implements IModularInvent
 		this.teir = teir;
 		storage.setMaxEnergyStored(getMaxEnergy(teir));
 	}
-	
+
 	protected int getMaxEnergy(int teir) {
-		return (int)Math.pow(10,teir)*10000;
+		return (int) ((int)Math.pow(10,teir)*10000 * energy_multiplier);
 	}
 	
 	@Override
