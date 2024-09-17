@@ -80,7 +80,7 @@ public abstract class TilePlugBase extends TilePointer implements IModularInvent
 	}
 	
 	protected int getMaxDrainRate(int teir) {
-		return 250*(int)Math.pow(2, teir);
+		return (int) (energy_multiplier*250*(int)Math.pow(2, teir));
 	}
 	
 	@Override
