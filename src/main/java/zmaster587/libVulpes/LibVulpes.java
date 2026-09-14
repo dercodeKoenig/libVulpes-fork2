@@ -289,24 +289,10 @@ public class LibVulpes {
 
 		zmaster587.libVulpes.Configuration.EUMult = (float)config.get(Configuration.CATEGORY_GENERAL, "EUPowerMultiplier", 4, "How many FE one EU makes").getDouble();
 		zmaster587.libVulpes.Configuration.powerMult =(float)config.get(Configuration.CATEGORY_GENERAL, "PowerMultiplier", 1, "Power multiplier on machines").getDouble();
-
+		zmaster587.libVulpes.Configuration.defaultMultiblockMachineEnabled = config.get(Configuration.CATEGORY_GENERAL, "DefaultMultiblockMachineEnabled", true, "Default power-button state for newly created multiblock machines that use the standard GUI power control. Saved machine states are unaffected.").getBoolean();
 		config.save();
-
 		TeslaCapabilityProvider.registerCap();
 
-        /*DUST,
-        INGOT,
-        GEM,
-        BOULE,
-        NUGGET,
-        COIL(true, AdvancedRocketryBlocks.blockCoil),
-        PLATE,
-        STICK,
-        BLOCK(true, LibVulpesBlocks.blockMetal),
-        ORE(true, LibVulpesBlocks.blockOre),
-        FAN,
-        SHEET,
-        GEAR;*/
 
         //Register allowedProducts
         AllowedProducts.registerProduct("DUST");

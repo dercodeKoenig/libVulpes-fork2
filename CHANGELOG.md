@@ -1,3 +1,7 @@
+0.5.8
+- Fixed a crash when trying to open a corrupt rocket's GUI. (crashing does not help the case)
+- Added config option to set the default power state of newly created multiblock machines. (saved states remain unchanged)
+
 0.5.7
 - Fixed MODULARFULLSCREEN using raw framebuffer dimensions instead of
   Minecraft scaled GUI dimensions. This corrects GUI scaling for fullscreen view
