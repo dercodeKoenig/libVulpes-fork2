@@ -40,6 +40,9 @@ public class GuiHandler implements IGuiHandler {
 		else
 			tile = world.getEntityByID(x);
 
+		if (!(tile instanceof IModularInventory))
+			return null;
+
 		if(ID == guiId.MODULAR.ordinal() || ID == guiId.MODULARNOINV.ordinal() || ID == guiId.MODULARFULLSCREEN.ordinal() || ID == guiId.MODULARCENTEREDFULLSCREEN.ordinal()) {
 			return new ContainerModular(player, ((IModularInventory)tile).getModules(ID, player), ((IModularInventory)tile), ID == guiId.MODULAR.ordinal(), ID != guiId.MODULARFULLSCREEN.ordinal() && ID != guiId.MODULARCENTEREDFULLSCREEN.ordinal());
 		}
@@ -67,6 +70,9 @@ public class GuiHandler implements IGuiHandler {
 		}
 		else
 			tile = world.getEntityByID(x);
+
+		if (!(tile instanceof IModularInventory))
+			return null;
 
 		if(ID == guiId.MODULAR.ordinal() || ID == guiId.MODULARNOINV.ordinal() || ID == guiId.MODULARCENTEREDFULLSCREEN.ordinal()) {
 			IModularInventory modularTile = ((IModularInventory)tile);
