@@ -1,10 +1,12 @@
 package zmaster587.libVulpes.tile.multiblock;
 
 import io.netty.buffer.ByteBuf;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.fml.relauncher.Side;
+import zmaster587.libVulpes.Configuration;
 import zmaster587.libVulpes.api.IUniversalEnergy;
 import zmaster587.libVulpes.block.BlockMeta;
 import zmaster587.libVulpes.inventory.modules.*;
@@ -27,6 +29,16 @@ public class TileMultiPowerProducer extends TileMultiBlock implements IToggleBut
 		super();
 		enabled = false;
 		toggleSwitch = new ModuleToggleSwitch(160, 5, 0, "", this,  zmaster587.libVulpes.inventory.TextureResources.buttonToggleImage, 11, 26, getMachineEnabled());
+	}
+
+	@Override
+	public boolean attemptCompleteStructure(IBlockState state) {
+		boolean wasComplete = isComplete();
+		boolean complete = super.attemptCompleteStructure(state);
+		if (!world.isRemote && !wasComplete && complete) {
+			setMachineEnabled(Configuration.defaultMultiblockMachineEnabled);
+		}
+		return complete;
 	}
 
 	public boolean getMachineEnabled() {

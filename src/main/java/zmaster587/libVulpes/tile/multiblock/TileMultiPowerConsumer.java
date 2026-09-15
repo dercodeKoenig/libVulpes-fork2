@@ -56,6 +56,16 @@ public class TileMultiPowerConsumer extends TileMultiBlock implements INetworkMa
 		toggleSwitch = new ModuleToggleSwitch(160, 5, 0, "", this,  zmaster587.libVulpes.inventory.TextureResources.buttonToggleImage, 11, 26, getMachineEnabled());
 	}
 
+	@Override
+	public boolean attemptCompleteStructure(IBlockState state) {
+		boolean wasComplete = isComplete();
+		boolean complete = super.attemptCompleteStructure(state);
+		if (!world.isRemote && !wasComplete && complete) {
+			setMachineEnabled(Configuration.defaultMultiblockMachineEnabled);
+		}
+		return complete;
+	}
+
 	//Needed for GUI stuff
 	public MultiBattery getBatteries() {
 		return batteries;

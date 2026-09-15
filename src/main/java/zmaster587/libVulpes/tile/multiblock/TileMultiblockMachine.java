@@ -15,7 +15,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.oredict.OreDictionary;
-import zmaster587.libVulpes.Configuration;
 import zmaster587.libVulpes.interfaces.IRecipe;
 import zmaster587.libVulpes.network.PacketHandler;
 import zmaster587.libVulpes.network.PacketMachine;
@@ -44,7 +43,6 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 
 	public TileMultiblockMachine() {
 		super();
-		enabled = Configuration.defaultMultiblockMachineEnabled;
 		outputItemStacks = null;
 	}
 
@@ -173,11 +171,6 @@ public abstract class TileMultiblockMachine extends TileMultiPowerConsumer {
 		outputItemStacks = null;
 		outputFluidStacks = null;
 		super.deconstructMultiBlock(world, destroyedPos, blockBroken, state);
-		enabled = Configuration.defaultMultiblockMachineEnabled;
-		if (!world.isRemote) {
-			markDirty();
-			world.notifyBlockUpdate(pos, world.getBlockState(pos), world.getBlockState(pos), 3);
-		}
 	}
 
 	protected void processComplete() {
